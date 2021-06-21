@@ -1,4 +1,4 @@
-from typing import Union, Optional
+from typing import Union, Optional, TypedDict
 
 import httpx
 import ujson
@@ -6,6 +6,21 @@ import ujson
 
 class SolrError(Exception):
     pass
+
+
+class JsonAPIRequest(TypedDict, total=False):
+    """
+    A JSON API Request can be typed when it is being sent to the .search() method. This provides
+    a handy way of ensuring that the keys in the request dictionary
+    """
+    query: str
+    filter: Union[str, list[str]]
+    params: dict
+    offset: int
+    limit: int
+    sort: str
+    fields: list[str]
+    facet: list[dict]
 
 
 class Results:
@@ -54,7 +69,7 @@ class Solr:
         self._session = httpx.AsyncClient()
         self._url: str = url
 
-    async def search(self, query: dict, handler: str = "/select") -> Results:
+    async def search(self, query: JsonAPIRequest, handler: str = "/select") -> Results:
         """
         Consumes a Solr JSON Request API configuration.
 
