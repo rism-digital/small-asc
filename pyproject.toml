@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "small-asc"
-version = "0.2.0"
-description = ""
+version = "0.3.0"
+description = "A small asynchronous Solr client"
 authors = ["Andrew Hankinson <andrew.hankinson@rism.digital>"]
 
 [tool.poetry.dependencies]
@@ -10,6 +10,7 @@ httpx = "^0.18.2"
 ujson = "^4.0.2"
 
 [tool.poetry.dev-dependencies]
+ipython = "^7.24.1"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
