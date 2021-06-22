@@ -160,7 +160,7 @@ class SyncSolr:
 
     def get(self, docid: str, handler: str = "/get") -> Optional[dict]:
         url: str = self._create_url(handler)
-        doc: dict = await self._send_to_solr(url, {"params": {"id": docid}})
+        doc: dict = self._send_to_solr(url, {"params": {"id": docid}})
 
         return doc.get("doc") or None
 
