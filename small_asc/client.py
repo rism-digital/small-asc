@@ -137,3 +137,66 @@ class Solr:
             json_result = ujson.loads(res.text)
 
         return json_result
+
+
+class SyncSolr:
+    """
+    A synchronous version of the async connection. Used for places
+    where the async version might be problematic.
+    """
+    def __init__(self, url: str) -> None:
+        self._session = httpx.Client()
+        self._url: str = url
+
+    def search(self, query: JsonAPIRequest, handler: str = "/select") -> Results:
+        url: str = self._create_url(handler)
+        search_results: dict = self._send_to_solr(url, query)
+
+        return Results(search_results)
+
+    def add(self, docs: list[dict], handler: str = "/update"):
+        url: str = self._create_url(handler)
+        return self._send_to_solr(url, docs)
+
+    def get(self, docid: str, handler: str = "/get") -> Optional[dict]:
+        url: str = self._create_url(handler)
+        doc: dict = await self._send_to_solr(url, {"params": {"id": docid}})
+
+        return doc.get("doc") or None
+
+    def delete(self, query: str, handler: str = "/update") -> dict:
+        base_url: str = self._create_url(handler)
+        # automatically commit the result of the delete query so we don't have
+        # old docs hanging around.
+        delete_url: str = f"{base_url}?commit=true"
+        res: dict = self._send_to_solr(delete_url, {"delete": {"query": query}})
+
+        return res
+
+    def _create_url(self, handler: str) -> str:
+        return "/".join([self._url.rstrip("/"), handler.lstrip("/")])
+
+    def _send_to_solr(self, url: str, data: Union[list, dict]):
+        with self._session as client:
+            try:
+                res = client.post(url,
+                                  headers={'Content-Type': 'application/json'},
+                                  data=ujson.dumps(data))
+
+            except httpx.TimeoutException as err:
+                error_message: str = "Connection to server %s timed out: %s"
+                raise SolrError(error_message % (url, err))
+            except httpx.ConnectError as err:
+                error_message: str = "Failed to connect to server at %s: %s"
+                raise SolrError(error_message % (url, err))
+            except httpx.HTTPError as err:
+                error_message: str = "Unhandled connection error for %s: %s"
+                raise SolrError(error_message % (url, err))
+
+            if res.status_code != 200:
+                error_message: str = "Solr responded with HTTP Error %s: %s"
+                raise SolrError(error_message % (res.status_code, res.reason_phrase))
+
+            json_result = ujson.loads(res.text)
+
+        return json_result
