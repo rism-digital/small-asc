@@ -103,6 +103,15 @@ class Solr:
 
         return doc.get("doc") or None
 
+    async def delete(self, query: str, handler: str = "/update") -> Optional[dict]:
+        base_url: str = "/".join([self._url.rstrip("/"), handler.lstrip("/")])
+        # automatically commit the result of the delete query so we don't have
+        # old docs hanging around.
+        delete_url: str = f"{base_url}?commit=true"
+        res: dict = await self._send_to_solr(delete_url, {"delete": {"query": query}})
+
+        return res
+
     async def _send_to_solr(self, url, data: Union[list, dict]):
         async with self._session as client:
             try:
