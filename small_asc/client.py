@@ -77,15 +77,13 @@ class Solr:
         :param handler: A Solr handler endpoint to target the query
         :return:
         """
-        url: str = "/".join([self._url.rstrip("/"), handler.lstrip("/")])
-
+        url: str = self._create_url(handler)
         search_results: dict = await self._send_to_solr(url, query)
 
         return Results(search_results)
 
-    async def add(self, docs: list[dict], handler: str = "/update") -> Results:
-        url: str = "/".join([self._url.rstrip("/"), handler.lstrip("/")])
-
+    async def add(self, docs: list[dict], handler: str = "/update") -> dict:
+        url: str = self._create_url(handler)
         return await self._send_to_solr(url, docs)
 
     async def get(self, docid: str, handler: str = "/get") -> Optional[dict]:
@@ -98,13 +96,13 @@ class Solr:
         :param handler: The request handler. Defaults to '/get'
         :return: A dictionary containing the Solr document.
         """
-        url: str = "/".join([self._url.rstrip("/"), handler.lstrip("/")])
+        url: str = self._create_url(handler)
         doc: dict = await self._send_to_solr(url, {"params": {"id": docid}})
 
         return doc.get("doc") or None
 
     async def delete(self, query: str, handler: str = "/update") -> Optional[dict]:
-        base_url: str = "/".join([self._url.rstrip("/"), handler.lstrip("/")])
+        base_url: str = self._create_url(handler)
         # automatically commit the result of the delete query so we don't have
         # old docs hanging around.
         delete_url: str = f"{base_url}?commit=true"
@@ -112,7 +110,10 @@ class Solr:
 
         return res
 
-    async def _send_to_solr(self, url, data: Union[list, dict]):
+    def _create_url(self, handler: str) -> str:
+        return "/".join([self._url.rstrip("/"), handler.lstrip("/")])
+
+    async def _send_to_solr(self, url: str, data: Union[list, dict]):
         async with self._session as client:
             try:
                 res = await client.post(url,
