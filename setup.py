@@ -8,5 +8,5 @@ setup(
     license='MIT',
     author='Andrew Hankinson',
     author_email='andrew.hankinson@rism.digital',
-    description='A small asynchronous Solr client'
+    description='A small Solr client'
 )
