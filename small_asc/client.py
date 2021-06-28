@@ -102,7 +102,7 @@ class Solr:
 
     Passes the JSON docs to Solr directly for updates.
 
-    Uses the HTTPX library for asynchronous communication.
+    Uses the HTTPX library.
     """
     def __init__(
             self,
@@ -207,6 +207,6 @@ def _post_data_to_solr(url: str, data: Union[list, dict], connection: httpx.Clie
             error_message: str = "Solr responded with HTTP Error %s: %s"
             raise SolrError(error_message % (res.status_code, res.reason_phrase))
 
-        json_result = ujson.loads(res.text)
+        json_result: dict = ujson.loads(res.text)
 
     return json_result
