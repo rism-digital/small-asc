@@ -108,7 +108,7 @@ class Solr:
             self,
             url: str
     ):
-        self._session = httpx.Client()
+        self._session = httpx.Client(timeout=None)
         self._url: str = url
 
     def search(self, query: JsonAPIRequest, cursor: bool = False, handler: str = "/select") -> Results:
