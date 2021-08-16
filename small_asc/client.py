@@ -1,3 +1,4 @@
+import math
 from typing import Union, Optional, TypedDict
 
 import httpx
@@ -44,8 +45,19 @@ class Results:
 
         # condense the check into a single boolean
         self._is_cursor: bool = all((self._query_url, self._query, self._session))
+        # These are for iterating documents
         self._idx: int = 0
         self._page_idx: int = 0
+
+        # These are for iterating pages
+        self.current_page: int = 1
+
+        # Assume the length of the first page is the length of all the pages
+        _docslen: int = len(self.docs)
+        # avoid divide-by-zero for no results
+        # we always have at least 1 page, even if there are zero results
+        _rows: int = _docslen if _docslen > 0 else 1
+        self.num_pages = int(math.ceil(self.hits / _rows))
 
     def __set_instance_values(self, raw_response: dict) -> None:
         response_part: dict = raw_response.get("response", {})
@@ -69,6 +81,30 @@ class Results:
         else:
             return len(self.docs)
 
+    def nextpage(self) -> bool:
+        """
+        Manually advances the results to the next page. A bit wonky when used with a while loop, so the best way to use
+        it is to call it directly:
+
+        res = client.search(...)
+
+        for i in range(res.num_pages):
+            # do something with res.docs for this page
+
+            # advance to the next page for the next iteration.
+            res.nextpage()
+        """
+        if self.current_page < self.num_pages:
+            self._query.get("params", {}).update({
+                "cursorMark": self.nextCursorMark
+            })
+            self.raw_response = _post_data_to_solr(self._query_url, self._query, self._session)
+            self.__set_instance_values(self.raw_response)
+            self.current_page += 1
+            return True
+
+        return False
+
     def __iter__(self):
         if self._is_cursor is False:
             yield from self.docs
@@ -84,6 +120,7 @@ class Results:
                     })
                     self.raw_response = _post_data_to_solr(self._query_url, self._query, self._session)
                     self.__set_instance_values(self.raw_response)
+                    self.current_page += 1
 
                     if self.docs:
                         yield self.docs[self._page_idx]
