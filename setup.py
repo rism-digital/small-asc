@@ -2,7 +2,7 @@ from distutils.core import setup
 
 setup(
     name='small-asc',
-    version='0.7.0',
+    version='0.7.5',
     packages=['small_asc'],
     url='https://github.com/rism-digital/small-asc',
     license='MIT',

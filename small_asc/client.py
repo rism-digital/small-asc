@@ -145,7 +145,8 @@ class Solr:
             self,
             url: str
     ):
-        self._session = httpx.Client(timeout=None)
+        self._session = httpx.Client(timeout=None,
+                                     headers={"Accept-Encoding": "gzip"})
         self._url: str = url
 
     def search(self, query: JsonAPIRequest, cursor: bool = False, handler: str = "/select") -> Results:
