@@ -35,8 +35,7 @@ class Results:
     """
     def __init__(self, result_json: dict,
                  url: Optional[str] = None,
-                 query: Optional[JsonAPIRequest] = None,
-                 session: Optional[httpx.Client] = None):
+                 query: Optional[JsonAPIRequest] = None):
 
         self.raw_response: dict = result_json
         self.__set_instance_values(result_json)
@@ -44,10 +43,9 @@ class Results:
         # parameters supporting cursor-based results
         self._query_url: Optional[str] = url
         self._query: Optional[JsonAPIRequest] = query
-        self._session: Optional[httpx.Client] = session
 
         # condense the check into a single boolean
-        self._is_cursor: bool = all((self._query_url, self._query, self._session))
+        self._is_cursor: bool = all((self._query_url, self._query))
         # These are for iterating documents
         self._idx: int = 0
         self._page_idx: int = 0
@@ -101,7 +99,7 @@ class Results:
             self._query.get("params", {}).update({
                 "cursorMark": self.nextCursorMark
             })
-            self.raw_response = _post_data_to_solr(self._query_url, self._query, self._session)
+            self.raw_response = _post_data_to_solr(self._query_url, self._query)
             self.__set_instance_values(self.raw_response)
             self.current_page += 1
             return True
@@ -121,7 +119,7 @@ class Results:
                     self._query.get("params", {}).update({
                         "cursorMark": self.nextCursorMark
                     })
-                    self.raw_response = _post_data_to_solr(self._query_url, self._query, self._session)
+                    self.raw_response = _post_data_to_solr(self._query_url, self._query)
                     self.__set_instance_values(self.raw_response)
                     self.current_page += 1
 
@@ -148,8 +146,6 @@ class Solr:
             self,
             url: str
     ):
-        self._session = httpx.Client(timeout=None,
-                                     headers={"Accept-Encoding": "gzip"})
         self._url: str = url
 
     def search(self, query: JsonAPIRequest, cursor: bool = False, handler: str = "/select") -> Results:
@@ -188,16 +184,16 @@ class Solr:
             if 'sort' not in query or 'sort' not in query.get("params", {}):
                 query.update({"sort": "id asc"})
 
-        search_results: dict = _post_data_to_solr(url, query, self._session)
+        search_results: dict = _post_data_to_solr(url, query)
 
         if cursor:
-            return Results(search_results, url, query, self._session)
+            return Results(search_results, url, query)
 
         return Results(search_results)
 
     def add(self, docs: list[dict], handler: str = "/update") -> dict:
         url: str = self._create_url(handler)
-        return _post_data_to_solr(url, docs, self._session)
+        return _post_data_to_solr(url, docs)
 
     def get(self, docid: str, handler: str = "/get") -> Optional[dict]:
         """
@@ -210,7 +206,7 @@ class Solr:
         :return: A dictionary containing the Solr document.
         """
         url: str = self._create_url(handler)
-        doc: dict = _post_data_to_solr(url, {"params": {"id": docid}}, self._session)
+        doc: dict = _post_data_to_solr(url, {"params": {"id": docid}})
 
         return doc.get("doc") or None
 
@@ -219,7 +215,7 @@ class Solr:
         # automatically commit the result of the delete query so we don't have
         # old docs hanging around.
         delete_url: str = f"{base_url}?commit=true"
-        res: dict = _post_data_to_solr(delete_url, {"delete": {"query": query}}, self._session)
+        res: dict = _post_data_to_solr(delete_url, {"delete": {"query": query}})
 
         return res
 
@@ -227,8 +223,8 @@ class Solr:
         return "/".join([self._url.rstrip("/"), handler.lstrip("/")])
 
 
-def _post_data_to_solr(url: str, data: Union[list, dict], connection: httpx.Client) -> dict:
-    with connection as client:
+def _post_data_to_solr(url: str, data: Union[list, dict]) -> dict:
+    with httpx.Client(timeout=None, headers={"Accept-Encoding": "gzip"}) as client:
         try:
             res = client.post(url,
                               headers={'Content-Type': 'application/json'},
@@ -248,7 +244,7 @@ def _post_data_to_solr(url: str, data: Union[list, dict], connection: httpx.Clie
             error_message: str = "Solr responded with HTTP Error %s: %s"
             raise SolrError(error_message % (res.status_code, res.reason_phrase))
 
-        log.debug("Upstream Request took %s s", res.elapsed.total_seconds())
+        log.debug("Upstream Request took %s s for %s, body: %s", res.elapsed.total_seconds(), url, data)
         json_result: dict = ujson.loads(res.text)
 
     return json_result
