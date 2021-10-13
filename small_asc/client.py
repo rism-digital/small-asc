@@ -4,6 +4,9 @@ from typing import Union, Optional, TypedDict
 import httpx
 import ujson
 
+import logging
+log = logging.getLogger(__name__)
+
 
 class SolrError(Exception):
     pass
@@ -245,6 +248,7 @@ def _post_data_to_solr(url: str, data: Union[list, dict], connection: httpx.Clie
             error_message: str = "Solr responded with HTTP Error %s: %s"
             raise SolrError(error_message % (res.status_code, res.reason_phrase))
 
+        log.debug("Upstream Request took %s s", res.elapsed.total_seconds())
         json_result: dict = ujson.loads(res.text)
 
     return json_result
