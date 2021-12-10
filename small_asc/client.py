@@ -240,9 +240,13 @@ class Solr:
         """
         base_url: str = self._create_url(handler)
         solr_query: dict = {"params": {
+            "omitHeader": "true",
             "terms": "true",
             "terms.fl": query["fields"],
-            "terms.regex": f".*{query['query']}.*"
+            "terms.regex": f".*{query['query']}.*",
+            "terms.regex.flag": ["case_insensitive",
+                                 "canon_eq",
+                                 "unicode_case"]
             }
         }
 
