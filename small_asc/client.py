@@ -257,11 +257,14 @@ class Solr:
 
 
 def _post_data_to_solr(url: str, data: Union[list, dict]) -> dict:
-    with httpx.Client(timeout=None, headers={"Accept-Encoding": "gzip"}) as client:
+    headers: dict = {
+        "Accept-Encoding": "gzip",
+        "Content-Type": 'application/json'
+    }
+
+    with httpx.Client(timeout=None, headers=headers) as client:
         try:
-            res = client.post(url,
-                              headers={'Content-Type': 'application/json'},
-                              content=ujson.dumps(data))
+            res = client.post(url, content=ujson.dumps(data))
 
         except httpx.TimeoutException as err:
             error_message: str = "Connection to server %s timed out: %s"
