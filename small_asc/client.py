@@ -185,9 +185,14 @@ class Solr:
             })
 
             # cursor queries need to be explicitly sorted, which makes them not very useful
-            # for doing relevance search, but
-            if 'sort' not in query or 'sort' not in query.get("params", {}):
+            # for doing relevance search, but very good for retrieving all records of a given ID.
+            # We just need to ensure that a unique field (typically 'id') is present in the Solr
+            # sorting statement. NB: We're still inside the 'if cursor' block, so this will only be
+            # run if we are in a cursor statement!
+            if 'sort' not in query and 'sort' not in query.get("params", {}):
                 query.update({"sort": "id asc"})
+            elif "id asc" not in query["sort"]:
+                query["sort"] = f"{query['sort']}, id asc"
 
         search_results: dict = _post_data_to_solr(url, query)
 
