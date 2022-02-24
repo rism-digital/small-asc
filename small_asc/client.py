@@ -191,7 +191,9 @@ class Solr:
             # run if we are in a cursor statement!
             if 'sort' not in query and 'sort' not in query.get("params", {}):
                 query.update({"sort": "id asc"})
-            elif "id asc" not in query["sort"]:
+            # The leading space is significant! We want to make sure we have a standalone `id` field name,
+            # otherwise statements like `foo_id asc` would match here.
+            elif " id asc" not in query["sort"]:
                 query["sort"] = f"{query['sort']}, id asc"
 
         search_results: dict = _post_data_to_solr(url, query)
