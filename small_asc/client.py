@@ -193,8 +193,10 @@ class Solr:
                 query.update({"sort": "id asc"})
             # The leading space is significant! We want to make sure we have a standalone `id` field name,
             # otherwise statements like `foo_id asc` would match here.
-            elif " id asc" not in query["sort"]:
+            elif 'sort' in query and " id asc" not in query["sort"]:
                 query["sort"] = f"{query['sort']}, id asc"
+            else:
+                raise SolrError("Could not determine a sort parameter when performing a cursor query.")
 
         search_results: dict = _post_data_to_solr(url, query)
 
