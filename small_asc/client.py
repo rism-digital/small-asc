@@ -89,8 +89,11 @@ class Results:
 
     def nextpage(self) -> bool:
         """
-        Manually advances the results to the next page. A bit wonky when used with a while loop, so the best way to use
-        it is to call it directly:
+        Manually advances the results to the next page. This depends on the initial request being called with
+        `cursor=True`, but rather than iterating through the results and automatically going to the next page,
+        this allows for iterating through a page of results and then manually advancing to the next page before
+        iterating through the next page of results. This is useful for chunking up large pages of results for
+        processing while still using the cursor capability.
 
         res = client.search(...)
 
@@ -99,6 +102,8 @@ class Results:
 
             # advance to the next page for the next iteration.
             res.nextpage()
+
+        NB: For this to work it needs to be run with `cursor=True` on the initial request.
         """
         if self.current_page < self.num_pages:
             self._query.get("params", {}).update({
