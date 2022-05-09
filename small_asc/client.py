@@ -214,18 +214,24 @@ class Solr:
         url: str = self._create_url(handler)
         return _post_data_to_solr(url, docs)
 
-    def get(self, docid: str, handler: str = "/get") -> Optional[dict]:
+    def get(self, docid: str, fields: Optional[list[str]] = None, handler: str = "/get") -> Optional[dict]:
         """
         Sends a request to the Solr RealtimeGetHandler endpoint to fetch a single
          record by its ID. Special consideration must be made to package up the
          request in the JSON Request API using the 'params' block.
 
         :param docid: A document ID
+        :param fields: An optional list of fields to return. `None` will return all fields.
         :param handler: The request handler. Defaults to '/get'
         :return: A dictionary containing the Solr document.
         """
         url: str = self._create_url(handler)
-        doc: dict = _post_data_to_solr(url, {"params": {"id": docid}})
+        qdoc: dict = {"params": {"id": docid}}
+
+        if fields and isinstance(fields, list):
+            qdoc.update({"fields": fields})
+
+        doc: dict = _post_data_to_solr(url, qdoc)
 
         return doc.get("doc") or None
 
