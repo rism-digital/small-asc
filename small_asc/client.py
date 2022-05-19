@@ -300,7 +300,7 @@ def _post_data_to_solr(url: str, data: Union[list, dict]) -> dict:
             error_message: str = "Solr responded with HTTP Error %s: %s"
             raise SolrError(error_message % (res.status_code, res.reason_phrase))
 
-        log.debug("Upstream Request took %s s for %s, body: %s", res.elapsed.total_seconds(), url, data)
+        log.debug("Upstream Request took %s s for %s", res.elapsed.total_seconds(), url)
         json_result: dict = ujson.loads(res.text)
 
     return json_result
