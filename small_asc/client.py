@@ -1,4 +1,5 @@
 import math
+from collections.abc import Generator
 from typing import Union, Optional, TypedDict
 
 import httpx
@@ -38,10 +39,11 @@ class Results:
     cursor iteration.
 
     """
-    def __init__(self, result_json: dict,
-                 url: Optional[str] = None,
-                 query: Optional[JsonAPIRequest] = None):
+    __slots__ = ("raw_response", "current_page", "num_pages", "docs", "hits", "debug", "highlighting", "facets",
+                 "spellcheck", "stats", "qtime", "grouped", "nextCursorMark", "_query_url", "_query", "_is_cursor",
+                 "_idx", "_page_idx")
 
+    def __init__(self, result_json: dict, url: Optional[str] = None, query: Optional[JsonAPIRequest] = None) -> None:
         self.raw_response: dict = result_json
         self.__set_instance_values(result_json)
 
@@ -49,11 +51,29 @@ class Results:
         self._query_url: Optional[str] = url
         self._query: Optional[JsonAPIRequest] = query
 
-        # condense the check into a single boolean
+        # condense the check into a single boolean. If this is a cursor query, then the original URL and the
+        # original query dictionary are passed into the results so that we can re-execute the search for the next
+        # page of results; if not, then only the result dictionary is sent.
         self._is_cursor: bool = all((self._query_url, self._query))
         # These are for iterating documents
         self._idx: int = 0
         self._page_idx: int = 0
+
+    def __set_instance_values(self, raw_response: dict) -> None:
+        response_part: dict = raw_response.get("response", {})
+        self.docs: list = response_part.get("docs", [])
+        self.hits: int = response_part.get("numFound", 0)
+
+        # other response metadata
+        self.debug: dict = raw_response.get("debug", {})
+        self.highlighting: dict = raw_response.get("highlighting", {})
+        self.facets: dict = raw_response.get("facet_counts", {})
+        self.spellcheck: dict = raw_response.get("spellcheck", {})
+        self.stats: dict = raw_response.get("stats", {})
+        self.qtime: Optional[str] = raw_response.get("responseHeader", {}).get("QTime", None)
+        self.grouped: dict = raw_response.get("grouped", {})
+
+        self.nextCursorMark: Optional[str] = raw_response.get("nextCursorMark", None)
 
         # These are for iterating pages
         self.current_page: int = 1
@@ -63,23 +83,7 @@ class Results:
         # avoid divide-by-zero for no results
         # we always have at least 1 page, even if there are zero results
         _rows: int = _docslen if _docslen > 0 else 1
-        self.num_pages = int(math.ceil(self.hits / _rows))
-
-    def __set_instance_values(self, raw_response: dict) -> None:
-        response_part: dict = raw_response.get("response", {})
-        self.docs: list = response_part.get("docs", [])
-        self.hits: int = response_part.get("numFound", 0)
-
-        # other response metadata
-        self.debug = raw_response.get("debug", {})
-        self.highlighting = raw_response.get("highlighting", {})
-        self.facets = raw_response.get("facet_counts", {})
-        self.spellcheck = raw_response.get("spellcheck", {})
-        self.stats = raw_response.get("stats", {})
-        self.qtime = raw_response.get("responseHeader", {}).get("QTime", None)
-        self.grouped = raw_response.get("grouped", {})
-
-        self.nextCursorMark = raw_response.get("nextCursorMark", None)
+        self.num_pages: int = int(math.ceil(self.hits / _rows))
 
     def __len__(self):
         if self._is_cursor:
@@ -116,7 +120,7 @@ class Results:
 
         return False
 
-    def __iter__(self):
+    def __iter__(self) -> Generator:
         if self._is_cursor is False:
             yield from self.docs
         else:
@@ -152,10 +156,9 @@ class Solr:
 
     Uses the HTTPX library.
     """
-    def __init__(
-            self,
-            url: str
-    ):
+    __slots__ = ("_url",)
+
+    def __init__(self, url: str) -> None:
         self._url: str = url
 
     def search(self, query: JsonAPIRequest, cursor: bool = False, handler: str = "/select") -> Results:
