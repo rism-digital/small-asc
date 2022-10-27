@@ -1,13 +1,13 @@
 [tool.poetry]
 name = "small-asc"
-version = "0.9.9"
+version = "0.9.10"
 description = "A small Solr client"
 authors = ["Andrew Hankinson <andrew.hankinson@rism.digital>"]
 
 [tool.poetry.dependencies]
 python = "^3.9"
 httpx = "^0.23.0"
-ujson = "^5.3.0"
+ujson = "^5.5.0"
 
 [tool.poetry.dev-dependencies]
 ipython = "^8.4.0"
