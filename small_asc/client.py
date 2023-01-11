@@ -3,7 +3,7 @@ from collections.abc import Generator
 from typing import Union, Optional, TypedDict
 
 import httpx
-import ujson
+import orjson
 
 import logging
 log = logging.getLogger(__name__)
@@ -287,7 +287,7 @@ def _post_data_to_solr(url: str, data: Union[list, dict]) -> dict:
 
     with httpx.Client(timeout=None, headers=headers) as client:
         try:
-            res = client.post(url, content=ujson.dumps(data))
+            res = client.post(url, content=orjson.dumps(data))
 
         except httpx.TimeoutException as err:
             error_message: str = "Connection to server %s timed out: %s"
@@ -304,6 +304,6 @@ def _post_data_to_solr(url: str, data: Union[list, dict]) -> dict:
             raise SolrError(error_message % (res.status_code, res.reason_phrase))
 
         log.debug("Upstream Request took %s s for %s", res.elapsed.total_seconds(), url)
-        json_result: dict = ujson.loads(res.text)
+        json_result: dict = orjson.loads(res.text)
 
     return json_result
