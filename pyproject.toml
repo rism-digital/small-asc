@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "small-asc"
-version = "0.9.11"
+version = "0.10.1"
 description = "A small Solr client"
 authors = ["Andrew Hankinson <andrew.hankinson@rism.digital>"]
 
