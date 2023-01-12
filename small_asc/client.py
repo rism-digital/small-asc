@@ -91,7 +91,7 @@ class Results:
         else:
             return len(self.docs)
 
-    def nextpage(self) -> bool:
+    async def nextpage(self) -> bool:
         """
         Manually advances the results to the next page. This depends on the initial request being called with
         `cursor=True`, but rather than iterating through the results and automatically going to the next page,
@@ -113,16 +113,16 @@ class Results:
             self._query.get("params", {}).update({
                 "cursorMark": self.nextCursorMark
             })
-            self.raw_response = _post_data_to_solr(self._query_url, self._query)
+            self.raw_response = await _post_data_to_solr(self._query_url, self._query)
             self.__set_instance_values(self.raw_response)
             self.current_page += 1
             return True
 
         return False
 
-    def __iter__(self) -> Generator:
+    async def __aiter__(self) -> Generator:
         if self._is_cursor is False:
-            yield from self.docs
+            yield self.docs[self._page_idx]
         else:
             while self._idx < self.hits:
                 try:
@@ -133,7 +133,7 @@ class Results:
                     self._query.get("params", {}).update({
                         "cursorMark": self.nextCursorMark
                     })
-                    self.raw_response = _post_data_to_solr(self._query_url, self._query)
+                    self.raw_response = await _post_data_to_solr(self._query_url, self._query)
                     self.__set_instance_values(self.raw_response)
                     self.current_page += 1
 
@@ -161,7 +161,7 @@ class Solr:
     def __init__(self, url: str) -> None:
         self._url: str = url
 
-    def search(self, query: JsonAPIRequest, cursor: bool = False, handler: str = "/select") -> Results:
+    async def search(self, query: JsonAPIRequest, cursor: bool = False, handler: str = "/select") -> Results:
         """
         Consumes a Solr JSON Request API configuration.
 
@@ -206,18 +206,18 @@ class Solr:
             else:
                 raise SolrError("Could not determine a sort parameter when performing a cursor query.")
 
-        search_results: dict = _post_data_to_solr(url, query)
+        search_results: dict = await _post_data_to_solr(url, query)
 
         if cursor:
             return Results(search_results, url, query)
 
         return Results(search_results)
 
-    def add(self, docs: list[dict], handler: str = "/update") -> dict:
+    async def add(self, docs: list[dict], handler: str = "/update") -> dict:
         url: str = self._create_url(handler)
-        return _post_data_to_solr(url, docs)
+        return await _post_data_to_solr(url, docs)
 
-    def get(self, docid: str, fields: Optional[list[str]] = None, handler: str = "/get") -> Optional[dict]:
+    async def get(self, docid: str, fields: Optional[list[str]] = None, handler: str = "/get") -> Optional[dict]:
         """
         Sends a request to the Solr RealtimeGetHandler endpoint to fetch a single
          record by its ID. Special consideration must be made to package up the
@@ -234,20 +234,20 @@ class Solr:
         if fields and isinstance(fields, list):
             qdoc.update({"fields": fields})
 
-        doc: dict = _post_data_to_solr(url, qdoc)
+        doc: dict = await _post_data_to_solr(url, qdoc)
 
         return doc.get("doc") or None
 
-    def delete(self, query: str, handler: str = "/update") -> Optional[dict]:
+    async def delete(self, query: str, handler: str = "/update") -> Optional[dict]:
         base_url: str = self._create_url(handler)
         # automatically commit the result of the delete query so we don't have
         # old docs hanging around.
         delete_url: str = f"{base_url}?commit=true"
-        res: dict = _post_data_to_solr(delete_url, {"delete": {"query": query}})
+        res: dict = await _post_data_to_solr(delete_url, {"delete": {"query": query}})
 
         return res
 
-    def term_suggest(self, query: JSONTermsSuggestRequest, handler: str = "/terms") -> Optional[dict]:
+    async def term_suggest(self, query: JSONTermsSuggestRequest, handler: str = "/terms") -> Optional[dict]:
         """
         Uses the Solr terms handler to provide a suggester. Requires that both the 'fields' and 'query'
         parameters are provided, e.g.,
@@ -273,21 +273,21 @@ class Solr:
             }
         }
 
-        return _post_data_to_solr(base_url, solr_query)
+        return await _post_data_to_solr(base_url, solr_query)
 
     def _create_url(self, handler: str) -> str:
         return "/".join([self._url.rstrip("/"), handler.lstrip("/")])
 
 
-def _post_data_to_solr(url: str, data: Union[list, dict]) -> dict:
+async def _post_data_to_solr(url: str, data: Union[list, dict]) -> dict:
     headers: dict = {
         "Accept-Encoding": "gzip",
         "Content-Type": 'application/json'
     }
 
-    with httpx.Client(timeout=None, headers=headers) as client:
+    async with httpx.AsyncClient(timeout=None, headers=headers) as client:
         try:
-            res = client.post(url, content=orjson.dumps(data))
+            res = await client.post(url, content=orjson.dumps(data))
 
         except httpx.TimeoutException as err:
             error_message: str = "Connection to server %s timed out: %s"
