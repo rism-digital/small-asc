@@ -247,7 +247,7 @@ class Solr:
 
         return res
 
-    async def term_suggest(self, query: JSONTermsSuggestRequest, handler: str = "/terms") -> Optional[dict]:
+    async def term_suggest(self, query: JSONTermsSuggestRequest, handler: str = "/terms") -> dict:
         """
         Uses the Solr terms handler to provide a suggester. Requires that both the 'fields' and 'query'
         parameters are provided, e.g.,
