@@ -120,13 +120,16 @@ class Results:
 
         return False
 
-    async def __aiter__(self) -> Generator:
+    def __aiter__(self):
+        return self
+
+    async def __anext__(self):
         if self._is_cursor is False:
-            yield self.docs[self._page_idx]
+            return self.docs[self._page_idx]
         else:
             while self._idx < self.hits:
                 try:
-                    yield self.docs[self._page_idx]  # type: ignore
+                    return self.docs[self._page_idx]  # type: ignore
                 except IndexError:
                     self._page_idx = 0
                     # update the cursormark with the cursor mark from the previous query.
@@ -138,7 +141,7 @@ class Results:
                     self.current_page += 1
 
                     if self.docs:
-                        yield self.docs[self._page_idx]
+                        return self.docs[self._page_idx]
                     else:
                         break
 
