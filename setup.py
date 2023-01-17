@@ -2,7 +2,7 @@ from distutils.core import setup
 
 setup(
     name='small-asc',
-    version='0.10.2',
+    version='0.10.3',
     packages=['small_asc'],
     package_data = {
         'small-asc': ['py.typed'],
