@@ -120,16 +120,13 @@ class Results:
 
         return False
 
-    def __aiter__(self):
-        return self
-
-    async def __anext__(self):
+    async def __aiter__(self) -> Generator:
         if self._is_cursor is False:
-            return self.docs[self._page_idx]
+            yield self.docs[self._page_idx]
         else:
             while self._idx < self.hits:
                 try:
-                    return self.docs[self._page_idx]  # type: ignore
+                    yield self.docs[self._page_idx]  # type: ignore
                 except IndexError:
                     self._page_idx = 0
                     # update the cursormark with the cursor mark from the previous query.
@@ -141,7 +138,7 @@ class Results:
                     self.current_page += 1
 
                     if self.docs:
-                        return self.docs[self._page_idx]
+                        yield self.docs[self._page_idx]
                     else:
                         break
 
@@ -250,7 +247,7 @@ class Solr:
 
         return res
 
-    async def term_suggest(self, query: JSONTermsSuggestRequest, handler: str = "/terms") -> dict:
+    async def term_suggest(self, query: JSONTermsSuggestRequest, handler: str = "/terms") -> Optional[dict]:
         """
         Uses the Solr terms handler to provide a suggester. Requires that both the 'fields' and 'query'
         parameters are provided, e.g.,
@@ -273,7 +270,7 @@ class Solr:
             "terms.regex.flag": ["case_insensitive",
                                  "canon_eq",
                                  "unicode_case"]
-            }
+        }
         }
 
         return await _post_data_to_solr(base_url, solr_query)
