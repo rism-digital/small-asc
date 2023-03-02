@@ -2,7 +2,7 @@ import math
 from collections.abc import Generator
 from typing import Union, Optional, TypedDict
 
-import httpx
+import aiohttp
 import orjson
 
 import logging
@@ -285,25 +285,21 @@ async def _post_data_to_solr(url: str, data: Union[list, dict]) -> dict:
         "Content-Type": 'application/json'
     }
 
-    async with httpx.AsyncClient(timeout=None, headers=headers) as client:
+    async with aiohttp.ClientSession(headers=headers, json_serialize=lambda x: orjson.dumps(x).decode("utf-8")) as client:
         try:
-            res = await client.post(url, content=orjson.dumps(data))
+            res = await client.post(url, json=data)
 
-        except httpx.TimeoutException as err:
-            error_message: str = "Connection to server %s timed out: %s"
-            raise SolrError(error_message % (url, err))
-        except httpx.ConnectError as err:
+        except aiohttp.ClientConnectionError as err:
             error_message: str = "Failed to connect to server at %s: %s"
             raise SolrError(error_message % (url, err))
-        except httpx.HTTPError as err:
+        except aiohttp.ClientError as err:
             error_message: str = "Unhandled connection error for %s: %s"
             raise SolrError(error_message % (url, err))
 
-        if res.status_code != 200:
+        if res.status != 200:
             error_message: str = "Solr responded with HTTP Error %s: %s"
-            raise SolrError(error_message % (res.status_code, res.reason_phrase))
+            raise SolrError(error_message % (res.status, res.reason))
 
-        log.debug("Upstream Request took %s s for %s", res.elapsed.total_seconds(), url)
-        json_result: dict = orjson.loads(res.text)
+        json_result = await res.json(loads=orjson.loads)
 
     return json_result
