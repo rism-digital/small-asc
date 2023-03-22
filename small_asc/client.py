@@ -41,9 +41,13 @@ class Results:
     """
     __slots__ = ("raw_response", "current_page", "num_pages", "docs", "hits", "debug", "highlighting", "facets",
                  "spellcheck", "stats", "qtime", "grouped", "nextCursorMark", "_query_url", "_query", "_is_cursor",
-                 "_idx", "_page_idx")
+                 "_idx", "_page_idx", "_session")
 
-    def __init__(self, result_json: dict, url: Optional[str] = None, query: Optional[JsonAPIRequest] = None) -> None:
+    def __init__(self,
+                 result_json: dict,
+                 url: Optional[str] = None,
+                 query: Optional[JsonAPIRequest] = None,
+                 session: Optional[aiohttp.ClientSession] = None) -> None:
         self.raw_response: dict = result_json
         self.__set_instance_values(result_json)
 
@@ -58,6 +62,7 @@ class Results:
         # These are for iterating documents
         self._idx: int = 0
         self._page_idx: int = 0
+        self._session: Optional[aiohttp.ClientSession] = session
 
     def __set_instance_values(self, raw_response: dict) -> None:
         response_part: dict = raw_response.get("response", {})
@@ -113,7 +118,11 @@ class Results:
             self._query.get("params", {}).update({
                 "cursorMark": self.nextCursorMark
             })
-            self.raw_response = await _post_data_to_solr(self._query_url, self._query)
+            if self._session:
+                self.raw_response = await _post_data_to_solr_with_session(self._query_url, self._query, self._session)
+            else:
+                self.raw_response = await _post_data_to_solr(self._query_url, self._query)
+
             self.__set_instance_values(self.raw_response)
             self.current_page += 1
             return True
@@ -133,7 +142,10 @@ class Results:
                     self._query.get("params", {}).update({
                         "cursorMark": self.nextCursorMark
                     })
-                    self.raw_response = await _post_data_to_solr(self._query_url, self._query)
+                    if self._session:
+                        self.raw_response = await _post_data_to_solr_with_session(self._query_url, self._query, self._session)
+                    else:
+                        self.raw_response = await _post_data_to_solr(self._query_url, self._query)
                     self.__set_instance_values(self.raw_response)
                     self.current_page += 1
 
@@ -161,7 +173,11 @@ class Solr:
     def __init__(self, url: str) -> None:
         self._url: str = url
 
-    async def search(self, query: JsonAPIRequest, cursor: bool = False, handler: str = "/select") -> Results:
+    async def search(self,
+                     query: JsonAPIRequest,
+                     cursor: bool = False,
+                     handler: str = "/select",
+                     session: Optional[aiohttp.ClientSession] = None) -> Results:
         """
         Consumes a Solr JSON Request API configuration.
 
@@ -175,6 +191,7 @@ class Solr:
         :param query: A dictionary corresponding to a Solr JSON Request API configuration for a query
         :param cursor: A boolean that determines whether a cursor is used in the search results.
         :param handler: A Solr handler endpoint to target the query
+        :param session: An optional existing session to use for the lookup
         :return:
         """
         url: str = self._create_url(handler)
@@ -206,9 +223,15 @@ class Solr:
             else:
                 raise SolrError("Could not determine a sort parameter when performing a cursor query.")
 
-        search_results: dict = await _post_data_to_solr(url, query)
+        search_results: dict
+        if session:
+            search_results = await _post_data_to_solr_with_session(url, query, session)
+        else:
+            search_results = await _post_data_to_solr(url, query)
 
-        if cursor:
+        if cursor and session:
+            return Results(search_results, url, query, session)
+        elif cursor:
             return Results(search_results, url, query)
 
         return Results(search_results)
@@ -217,7 +240,11 @@ class Solr:
         url: str = self._create_url(handler)
         return await _post_data_to_solr(url, docs)
 
-    async def get(self, docid: str, fields: Optional[list[str]] = None, handler: str = "/get") -> Optional[dict]:
+    async def get(self,
+                  docid: str,
+                  fields: Optional[list[str]] = None,
+                  handler: str = "/get",
+                  session: Optional[aiohttp.ClientSession] = None) -> Optional[dict]:
         """
         Sends a request to the Solr RealtimeGetHandler endpoint to fetch a single
          record by its ID. Special consideration must be made to package up the
@@ -226,6 +253,7 @@ class Solr:
         :param docid: A document ID
         :param fields: An optional list of fields to return. `None` will return all fields.
         :param handler: The request handler. Defaults to '/get'
+        :param session: An optional session to handle the request
         :return: A dictionary containing the Solr document.
         """
         url: str = self._create_url(handler)
@@ -234,7 +262,11 @@ class Solr:
         if fields and isinstance(fields, list):
             qdoc.update({"fields": fields})
 
-        doc: dict = await _post_data_to_solr(url, qdoc)
+        doc: dict
+        if session:
+            doc = await _post_data_to_solr_with_session(url, qdoc, session)
+        else:
+            doc = await _post_data_to_solr(url, qdoc)
 
         return doc.get("doc") or None
 
@@ -279,23 +311,13 @@ class Solr:
         return "/".join([self._url.rstrip("/"), handler.lstrip("/")])
 
 
-async def _post_data_to_solr(url: str, data: Union[list, dict]) -> dict:
+async def _post_data_to_solr_with_session(url: str, data: Union[list, dict], session: aiohttp.ClientSession) -> dict:
     headers: dict = {
         "Accept-Encoding": "gzip",
         "Content-Type": 'application/json'
     }
 
-    async with aiohttp.ClientSession(headers=headers, json_serialize=lambda x: orjson.dumps(x).decode("utf-8")) as client:
-        try:
-            res = await client.post(url, json=data)
-
-        except aiohttp.ClientConnectionError as err:
-            error_message: str = "Failed to connect to server at %s: %s"
-            raise SolrError(error_message % (url, err))
-        except aiohttp.ClientError as err:
-            error_message: str = "Unhandled connection error for %s: %s"
-            raise SolrError(error_message % (url, err))
-
+    async with session.post(url, json=data, headers=headers) as res:
         if res.status != 200:
             error_message: str = "Solr responded with HTTP Error %s: %s"
             raise SolrError(error_message % (res.status, res.reason))
@@ -303,3 +325,8 @@ async def _post_data_to_solr(url: str, data: Union[list, dict]) -> dict:
         json_result = await res.json(loads=orjson.loads)
 
     return json_result
+
+
+async def _post_data_to_solr(url: str, data: Union[list, dict]) -> dict:
+    async with aiohttp.ClientSession(json_serialize=lambda x: orjson.dumps(x).decode("utf-8")) as session:
+        return await _post_data_to_solr_with_session(url, data, session)
