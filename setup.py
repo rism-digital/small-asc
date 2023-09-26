@@ -2,7 +2,7 @@ from distutils.core import setup
 
 setup(
     name='small-asc',
-    version='0.12.1',
+    version='0.12.4',
     packages=['small_asc'],
     package_data={
         'small-asc': ['py.typed'],
@@ -11,5 +11,5 @@ setup(
     license='MIT',
     author='Andrew Hankinson',
     author_email='andrew.hankinson@rism.digital',
-    description='A small Solr client'
+    description='A small asynchronous Solr client'
 )
