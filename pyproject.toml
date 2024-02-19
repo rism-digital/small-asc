@@ -6,7 +6,7 @@ authors = ["Andrew Hankinson <andrew.hankinson@rism.digital>"]
 
 [tool.poetry.dependencies]
 python = "^3.9"
-orjson = "^3.8.5"
+orjson = "3.9.10"
 aiohttp = {extras = ["speedups"], version = "^3.8.4"}
 
 [tool.poetry.dev-dependencies]
