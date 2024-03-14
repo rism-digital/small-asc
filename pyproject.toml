@@ -1,12 +1,12 @@
 [tool.poetry]
 name = "small-asc"
-version = "0.12.8"
+version = "0.12.9"
 description = "A small asynchronous Solr client"
 authors = ["Andrew Hankinson <andrew.hankinson@rism.digital>"]
 
 [tool.poetry.dependencies]
 python = "^3.9"
-orjson = "3.9.10"
+orjson = "^3.9.15"
 aiohttp = {extras = ["speedups"], version = "^3.8.4"}
 
 [tool.poetry.dev-dependencies]
