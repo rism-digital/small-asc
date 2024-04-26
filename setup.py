@@ -1,8 +1,8 @@
-from distutils.core import setup
+from setuptools import setup
 
 setup(
     name='small-asc',
-    version='0.12.9',
+    version='0.12.10',
     packages=['small_asc'],
     package_data={
         'small-asc': ['py.typed'],
