@@ -1,11 +1,11 @@
+import logging
 import math
 from collections.abc import Generator
-from typing import Union, Optional, TypedDict
+from typing import Optional, TypedDict, Union
 
 import aiohttp
 import orjson
 
-import logging
 log = logging.getLogger(__name__)
 
 
@@ -18,11 +18,12 @@ class JsonAPIRequest(TypedDict, total=False):
     A JSON API Request can be typed when it is being sent to the .search() method. This provides
     a handy way of ensuring that the keys in the request dictionary
     """
+
     query: str
     filter: Union[str, list[str]]
     params: dict
     offset: int  # aka 'start'
-    limit: int   # aka 'rows'
+    limit: int  # aka 'rows'
     sort: str
     fields: list[str]
     facet: list[dict]
@@ -39,15 +40,36 @@ class Results:
     cursor iteration.
 
     """
-    __slots__ = ("raw_response", "current_page", "num_pages", "docs", "hits", "debug", "highlighting", "facets",
-                 "spellcheck", "stats", "qtime", "grouped", "nextCursorMark", "_query_url", "_query", "_is_cursor",
-                 "_idx", "_page_idx", "_session")
 
-    def __init__(self,
-                 result_json: dict,
-                 url: Optional[str] = None,
-                 query: Optional[JsonAPIRequest] = None,
-                 session: Optional[aiohttp.ClientSession] = None) -> None:
+    __slots__ = (
+        "raw_response",
+        "current_page",
+        "num_pages",
+        "docs",
+        "hits",
+        "debug",
+        "highlighting",
+        "facets",
+        "spellcheck",
+        "stats",
+        "qtime",
+        "grouped",
+        "nextCursorMark",
+        "_query_url",
+        "_query",
+        "_is_cursor",
+        "_idx",
+        "_page_idx",
+        "_session",
+    )
+
+    def __init__(
+        self,
+        result_json: dict,
+        url: Optional[str] = None,
+        query: Optional[JsonAPIRequest] = None,
+        session: Optional[aiohttp.ClientSession] = None,
+    ) -> None:
         self.raw_response: dict = result_json
         self.__set_instance_values(result_json)
 
@@ -75,10 +97,12 @@ class Results:
         self.facets: dict = raw_response.get("facet_counts", {})
         self.spellcheck: dict = raw_response.get("spellcheck", {})
         self.stats: dict = raw_response.get("stats", {})
-        self.qtime: Optional[str] = raw_response.get("responseHeader", {}).get("QTime", None)
+        self.qtime: Optional[str] = raw_response.get("responseHeader", {}).get(
+            "QTime", None
+        )
         self.grouped: dict = raw_response.get("grouped", {})
 
-        self.nextCursorMark: Optional[str] = raw_response.get("nextCursorMark", None)
+        self.nextCursorMark: Optional[str] = raw_response.get("nextCursorMark")
 
         # These are for iterating pages
         self.current_page: int = 1
@@ -115,13 +139,15 @@ class Results:
         NB: For this to work it needs to be run with `cursor=True` on the initial request.
         """
         if self.current_page < self.num_pages:
-            self._query.get("params", {}).update({
-                "cursorMark": self.nextCursorMark
-            })
+            self._query.get("params", {}).update({"cursorMark": self.nextCursorMark})
             if self._session:
-                self.raw_response = await _post_data_to_solr_with_session(self._query_url, self._query, self._session)
+                self.raw_response = await _post_data_to_solr_with_session(
+                    self._query_url, self._query, self._session
+                )
             else:
-                self.raw_response = await _post_data_to_solr(self._query_url, self._query)
+                self.raw_response = await _post_data_to_solr(
+                    self._query_url, self._query
+                )
 
             self.__set_instance_values(self.raw_response)
             self.current_page += 1
@@ -143,13 +169,17 @@ class Results:
                 except IndexError:
                     self._page_idx = 0
                     # update the cursormark with the cursor mark from the previous query.
-                    self._query.get("params", {}).update({
-                        "cursorMark": self.nextCursorMark
-                    })
+                    self._query.get("params", {}).update(
+                        {"cursorMark": self.nextCursorMark}
+                    )
                     if self._session:
-                        self.raw_response = await _post_data_to_solr_with_session(self._query_url, self._query, self._session)
+                        self.raw_response = await _post_data_to_solr_with_session(
+                            self._query_url, self._query, self._session
+                        )
                     else:
-                        self.raw_response = await _post_data_to_solr(self._query_url, self._query)
+                        self.raw_response = await _post_data_to_solr(
+                            self._query_url, self._query
+                        )
                     self.__set_instance_values(self.raw_response)
                     self.current_page += 1
 
@@ -172,16 +202,19 @@ class Solr:
 
     Uses the HTTPX library.
     """
+
     __slots__ = ("_url",)
 
     def __init__(self, url: str) -> None:
         self._url: str = url
 
-    async def search(self,
-                     query: JsonAPIRequest,
-                     cursor: bool = False,
-                     handler: str = "/select",
-                     session: Optional[aiohttp.ClientSession] = None) -> Results:
+    async def search(
+        self,
+        query: JsonAPIRequest,
+        cursor: bool = False,
+        handler: str = "/select",
+        session: Optional[aiohttp.ClientSession] = None,
+    ) -> Results:
         """
         Consumes a Solr JSON Request API configuration.
 
@@ -201,31 +234,33 @@ class Solr:
         url: str = self._create_url(handler)
 
         if cursor:
-            if 'offset' in query or 'start' in query.get("params", {}):
-                raise SolrError("Offset or start is not supported when performing a cursor query.")
+            if "offset" in query or "start" in query.get("params", {}):
+                raise SolrError(
+                    "Offset or start is not supported when performing a cursor query."
+                )
 
             # 'legacy' solr query parameters can be stored in the 'params' key. Ensure we have one
             # if it's not already passed in.
-            if 'params' not in query:
-                query['params'] = {}
+            if "params" not in query:
+                query["params"] = {}
 
-            query['params'].update({
-                "cursorMark": "*"
-            })
+            query["params"].update({"cursorMark": "*"})
 
             # cursor queries need to be explicitly sorted, which makes them not very useful
             # for doing relevance search, but very good for retrieving all records of a given ID.
             # We just need to ensure that a unique field (typically 'id') is present in the Solr
             # sorting statement. NB: We're still inside the 'if cursor' block, so this will only be
             # run if we are in a cursor statement!
-            if 'sort' not in query and 'sort' not in query.get("params", {}):
+            if "sort" not in query and "sort" not in query.get("params", {}):
                 query.update({"sort": "id asc"})
             # The leading space is significant! We want to make sure we have a standalone `id` field name,
             # otherwise statements like `foo_id asc` would match here.
-            elif 'sort' in query and " id asc" not in query["sort"]:
+            elif "sort" in query and " id asc" not in query["sort"]:
                 query["sort"] = f"{query['sort']}, id asc"
             else:
-                raise SolrError("Could not determine a sort parameter when performing a cursor query.")
+                raise SolrError(
+                    "Could not determine a sort parameter when performing a cursor query."
+                )
 
         search_results: dict
         if session:
@@ -244,11 +279,13 @@ class Solr:
         url: str = self._create_url(handler)
         return await _post_data_to_solr(url, docs)
 
-    async def get(self,
-                  docid: str,
-                  fields: Optional[list[str]] = None,
-                  handler: str = "/get",
-                  session: Optional[aiohttp.ClientSession] = None) -> Optional[dict]:
+    async def get(
+        self,
+        docid: str,
+        fields: Optional[list[str]] = None,
+        handler: str = "/get",
+        session: Optional[aiohttp.ClientSession] = None,
+    ) -> Optional[dict]:
         """
         Sends a request to the Solr RealtimeGetHandler endpoint to fetch a single
          record by its ID. Special consideration must be made to package up the
@@ -283,7 +320,9 @@ class Solr:
 
         return res
 
-    async def term_suggest(self, query: JSONTermsSuggestRequest, handler: str = "/terms") -> Optional[dict]:
+    async def term_suggest(
+        self, query: JSONTermsSuggestRequest, handler: str = "/terms"
+    ) -> Optional[dict]:
         """
         Uses the Solr terms handler to provide a suggester. Requires that both the 'fields' and 'query'
         parameters are provided, e.g.,
@@ -298,14 +337,13 @@ class Solr:
         :return: A dictionary containing the Solr response
         """
         base_url: str = self._create_url(handler)
-        solr_query: dict = {"params": {
-            "omitHeader": "true",
-            "terms": "true",
-            "terms.fl": query["fields"],
-            "terms.regex": f".*{query['query']}.*",
-            "terms.regex.flag": ["case_insensitive",
-                                 "canon_eq",
-                                 "unicode_case"]
+        solr_query: dict = {
+            "params": {
+                "omitHeader": "true",
+                "terms": "true",
+                "terms.fl": query["fields"],
+                "terms.regex": f".*{query['query']}.*",
+                "terms.regex.flag": ["case_insensitive", "canon_eq", "unicode_case"],
             }
         }
 
@@ -315,11 +353,10 @@ class Solr:
         return "/".join([self._url.rstrip("/"), handler.lstrip("/")])
 
 
-async def _post_data_to_solr_with_session(url: str, data: Union[list, dict], session: aiohttp.ClientSession) -> dict:
-    headers: dict = {
-        "Accept-Encoding": "gzip",
-        "Content-Type": 'application/json'
-    }
+async def _post_data_to_solr_with_session(
+    url: str, data: Union[list, dict], session: aiohttp.ClientSession
+) -> dict:
+    headers: dict = {"Accept-Encoding": "gzip", "Content-Type": "application/json"}
 
     async with session.post(url, json=data, headers=headers) as res:
         if res.status != 200:
@@ -332,5 +369,7 @@ async def _post_data_to_solr_with_session(url: str, data: Union[list, dict], ses
 
 
 async def _post_data_to_solr(url: str, data: Union[list, dict]) -> dict:
-    async with aiohttp.ClientSession(json_serialize=lambda x: orjson.dumps(x).decode("utf-8")) as session:
+    async with aiohttp.ClientSession(
+        json_serialize=lambda x: orjson.dumps(x).decode("utf-8")
+    ) as session:
         return await _post_data_to_solr_with_session(url, data, session)
