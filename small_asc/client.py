@@ -157,7 +157,6 @@ class Results:
 
     async def __aiter__(self) -> Generator:
         if self._is_cursor is False:
-            #
             _docslen: int = len(self.docs)
             while self._page_idx < _docslen:
                 yield self.docs[self._page_idx]
