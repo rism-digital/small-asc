@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name="small-asc",
-    version="0.12.12",
+    version="0.12.13",
     packages=["small_asc"],
     package_data={
         "small-asc": ["py.typed"],
