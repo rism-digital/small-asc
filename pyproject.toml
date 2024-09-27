@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "small-asc"
-version = "0.12.13"
+version = "0.12.14"
 description = "A small asynchronous Solr client"
 authors = ["Andrew Hankinson <andrew.hankinson@rism.digital>"]
 
@@ -11,6 +11,9 @@ aiohttp = {extras = ["speedups"], version = "^3.8.4"}
 
 [tool.poetry.dev-dependencies]
 ipython = "^8.4.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest-benchmark = "^4.0.0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
