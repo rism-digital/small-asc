@@ -180,17 +180,3 @@ def _run_grammar(query: str, fields: Optional[dict] = None) -> str:
 
     string_builder = LuceneQueryBuilder(replacement_field_names=fields)
     return string_builder.visit(tree)
-
-
-if __name__ == "__main__":
-    # Example usage with the previously parsed tree
-    query = "foo   bar"
-
-    # Parse the query using the grammar
-    tree = lucene_query_grammar.parse(query)
-
-    # Initialize the visitor and rebuild the query
-    builder = LuceneQueryBuilder(default_operator="AND")
-    lucene_query = builder.visit(tree)
-    print(tree)
-    print(lucene_query)
