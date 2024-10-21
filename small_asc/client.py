@@ -1,12 +1,14 @@
 import logging
 import math
 from collections.abc import Generator
-from typing import Optional, TypedDict, Union
+from typing import Any, Optional, TypeAlias, TypedDict, Union
 
 import aiohttp
 import orjson
 
 log = logging.getLogger(__name__)
+
+Json: TypeAlias = Union[list[Any], dict[Any, Any]]
 
 
 class SolrError(Exception):
@@ -70,7 +72,7 @@ class Results:
         query: Optional[JsonAPIRequest] = None,
         session: Optional[aiohttp.ClientSession] = None,
     ) -> None:
-        self.raw_response: dict = result_json
+        self.raw_response: Json = result_json
         self.__set_instance_values(result_json)
 
         # parameters supporting cursor-based results
@@ -138,8 +140,17 @@ class Results:
 
         NB: For this to work it needs to be run with `cursor=True` on the initial request.
         """
+        # Cannot fetch the next page if we don't have a cursor set.
+        if not self._is_cursor:
+            return False
+
+        if self._query is None:
+            self._query = {}
+
         if self.current_page < self.num_pages:
-            self._query.get("params", {}).update({"cursorMark": self.nextCursorMark})
+            if "params" in self._query:
+                self._query["params"].update({"cursorMark": self.nextCursorMark})
+
             if self._session:
                 self.raw_response = await _post_data_to_solr_with_session(
                     self._query_url, self._query, self._session
@@ -228,7 +239,7 @@ class Solr:
         :param cursor: A boolean that determines whether a cursor is used in the search results.
         :param handler: A Solr handler endpoint to target the query
         :param session: An optional existing session to use for the lookup
-        :return:
+        :return: a Results instance
         """
         url: str = self._create_url(handler)
 
@@ -261,7 +272,7 @@ class Solr:
                     "Could not determine a sort parameter when performing a cursor query."
                 )
 
-        search_results: dict
+        search_results: Union[list[Any], dict[Any, Any]]
         if session:
             search_results = await _post_data_to_solr_with_session(url, query, session)
         else:
@@ -274,7 +285,7 @@ class Solr:
 
         return Results(search_results)
 
-    async def add(self, docs: list[dict], handler: str = "/update") -> dict:
+    async def add(self, docs: list[dict], handler: str = "/update") -> Json:
         url: str = self._create_url(handler)
         return await _post_data_to_solr(url, docs)
 
@@ -284,7 +295,7 @@ class Solr:
         fields: Optional[list[str]] = None,
         handler: str = "/get",
         session: Optional[aiohttp.ClientSession] = None,
-    ) -> Optional[dict]:
+    ) -> Optional[Json]:
         """
         Sends a request to the Solr RealtimeGetHandler endpoint to fetch a single
          record by its ID. Special consideration must be made to package up the
@@ -302,26 +313,28 @@ class Solr:
         if fields and isinstance(fields, list):
             qdoc.update({"fields": fields})
 
-        doc: dict
+        doc: Json
         if session:
             doc = await _post_data_to_solr_with_session(url, qdoc, session)
         else:
             doc = await _post_data_to_solr(url, qdoc)
 
-        return doc.get("doc") or None
+        return doc.get("doc", None)
 
     async def delete(self, query: str, handler: str = "/update") -> Optional[dict]:
         base_url: str = self._create_url(handler)
         # automatically commit the result of the delete query so we don't have
         # old docs hanging around.
         delete_url: str = f"{base_url}?commit=true"
-        res: dict = await _post_data_to_solr(delete_url, {"delete": {"query": query}})
+        res: Union[list[Any], dict[Any, Any]] = await _post_data_to_solr(
+            delete_url, {"delete": {"query": query}}
+        )
 
         return res
 
     async def term_suggest(
         self, query: JSONTermsSuggestRequest, handler: str = "/terms"
-    ) -> Optional[dict]:
+    ) -> Optional[Json]:
         """
         Uses the Solr terms handler to provide a suggester. Requires that both the 'fields' and 'query'
         parameters are provided, e.g.,
@@ -353,8 +366,8 @@ class Solr:
 
 
 async def _post_data_to_solr_with_session(
-    url: str, data: Union[list, dict], session: aiohttp.ClientSession
-) -> dict:
+    url: str, data: JsonAPIRequest, session: aiohttp.ClientSession
+) -> Json:
     headers: dict = {"Accept-Encoding": "gzip", "Content-Type": "application/json"}
 
     async with session.post(url, json=data, headers=headers) as res:
@@ -367,7 +380,7 @@ async def _post_data_to_solr_with_session(
     return json_result
 
 
-async def _post_data_to_solr(url: str, data: Union[list, dict]) -> dict:
+async def _post_data_to_solr(url: str, data: JsonAPIRequest) -> Json:
     async with aiohttp.ClientSession(
         json_serialize=lambda x: orjson.dumps(x).decode("utf-8")
     ) as session:

@@ -1,0 +1,43 @@
+from unittest import TestCase
+
+from small_asc.query import QueryParseError, parse_query, validate_query
+
+test_queries = [
+    ("foo", "foo"),
+    ("foo bar", "foo bar"),
+    ("foo      bar", "foo bar"),
+    ('"Huckleberry Finn"', '"Huckleberry Finn"'),
+    ("foo~2", "foo~2"),
+    ("(foo bar)", "(foo bar)"),
+    ("(foo OR bar)", "(foo OR bar)"),
+    ("(foo NOT bar)", "(foo NOT bar)"),
+    ("+foo", "+foo"),
+    ("-bar", "-bar"),
+    ("+foo -bar", "+foo -bar"),
+    ("fo*", "fo*"),
+    ("[10 TO 20]", "[10 TO 20]"),
+    ("[* TO 20]", "[* TO 20]"),
+]
+
+
+test_raises = ['"foo', 'bar"', "(foo", "bar)", "fo?????"]
+
+
+class TestQuery(TestCase):
+    def test_query(self):
+        for query, expected in test_queries:
+            parsed = parse_query(query)
+            self.assertEqual(parsed, expected)
+
+    def test_raise(self):
+        for query in test_raises:
+            with self.assertRaises(QueryParseError):
+                _ = parse_query(query)
+
+    def test_valid(self):
+        for query, _ in test_queries:
+            self.assertTrue(validate_query(query))
+
+    def test_invalid(self):
+        for query in test_raises:
+            self.assertFalse(validate_query(query))
