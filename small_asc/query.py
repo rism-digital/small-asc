@@ -7,14 +7,14 @@ from parsimonious.nodes import Node, NodeVisitor
 # From a discussion with ChatGPT, this is what we came up with as a basic Lucene Query PEG grammar.
 lucene_query_grammar = Grammar(
     r"""
-    query               = clause (boolean_operator? clause)*
+    query               = clause (whitespace clause)*
 
-    clause              = optional_operator? (fielded_clause / term_sequence / boolean_clause / range_clause)
+    clause              = optional_operator? (fielded_clause / term_or_phrase / boolean_clause / range_clause)
 
-    # Fielded clause (e.g., title:foo bar baz -> title:foo AND bar AND baz)
-    fielded_clause      = field ":" (term_sequence / phrase / range_clause / boolean_clause)
+    # Fielded clause (e.g., title:foo, creator:Palestrina)
+    fielded_clause      = field_name ":" (term / phrase / range_clause / boolean_clause)
 
-    field               = ~"[a-zA-Z_][a-zA-Z0-9_]*"
+    field_name               = ~r"[a-zA-Z_][a-zA-Z0-9_]*"
 
     # Boolean clause (e.g., (foo AND bar))
     boolean_clause      = "(" query ")"
@@ -26,12 +26,16 @@ lucene_query_grammar = Grammar(
     range_value         = wildcard_multiple / term
 
     # Terms and phrases
-    term_sequence       = (optional_operator? (term / phrase)) (whitespace optional_operator? (term / phrase))*
+    term_sequence       = (optional_operator? term_or_phrase) (whitespace optional_operator? term_or_phrase)*
 
+    term_or_phrase      = term / phrase
     term                = literal (wildcard / fuzziness)? boost?
     phrase              = '"' literal (whitespace literal)* '"' boost?
 
     literal             = ~"[a-zA-Z0-9_]+"
+
+    # Boolean operators
+    boolean_operator    = "AND" / "OR" / "NOT"
 
     # Wildcards and fuzziness (e.g., foo* or foo~2)
     wildcard            = wildcard_multiple / wildcard_single
@@ -43,14 +47,10 @@ lucene_query_grammar = Grammar(
     boost               = "^" number
     number              = ~r"[0-9]+(\.[0-9]+)?"
 
-    # Boolean operators
-    boolean_operator    = "AND" / "OR" / "NOT"
-
     # Optional operators (+ for required, - for prohibited, etc.)
     optional_operator   = ~r"[+\-]"
 
-    # Fuzziness
-    digit               = ~"[0-9]"
+    digit               = ~r"[0-9]"
 
     # Whitespace
     whitespace          = ~r"\s+"
@@ -174,9 +174,16 @@ def validate_query(query: str) -> bool:
 
 def _run_grammar(query: str, fields: Optional[dict] = None) -> str:
     try:
-        tree: Node = lucene_query_grammar.parse(query)
+        # Leading and trailing spaces are not permitted so we strip them off.
+        tree: Node = lucene_query_grammar.parse(query.strip())
     except ParseError as e:
         raise QueryParseError() from e
 
     string_builder = LuceneQueryBuilder(replacement_field_names=fields)
     return string_builder.visit(tree)
+
+
+if __name__ == "__main__":
+    q = 'title:"foo" creator:Bar '
+    s = parse_query(q.strip())
+    print(s)

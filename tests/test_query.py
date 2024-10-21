@@ -7,8 +7,13 @@ test_queries = [
     ("foo bar", "foo bar"),
     ("foo      bar", "foo bar"),
     ('"Huckleberry Finn"', '"Huckleberry Finn"'),
+    (
+        'shelfmark:"MLHs" creator:Palestrina',
+        'shelfmark:"MLHs" creator:Palestrina',
+    ),
     ("foo~2", "foo~2"),
     ("(foo bar)", "(foo bar)"),
+    ("title:(foo NOT bar)", "title:(foo NOT bar)"),
     ("(foo OR bar)", "(foo OR bar)"),
     ("(foo NOT bar)", "(foo NOT bar)"),
     ("+foo", "+foo"),
@@ -20,14 +25,16 @@ test_queries = [
 ]
 
 
-test_raises = ['"foo', 'bar"', "(foo", "bar)", "fo?????"]
+test_raises = ['"foo', 'bar"', "(foo", "bar)", "fo?????", "bar  "]
 
 
 class TestQuery(TestCase):
     def test_query(self):
         for query, expected in test_queries:
             parsed = parse_query(query)
-            self.assertEqual(parsed, expected)
+            self.assertEqual(
+                parsed, expected, msg=f"found {parsed}, expected {expected}"
+            )
 
     def test_raise(self):
         for query in test_raises:
