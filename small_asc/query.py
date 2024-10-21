@@ -165,7 +165,7 @@ def parse_with_field_replacements(query: str, fields: dict) -> str:
 
 def validate_query(query: str) -> bool:
     try:
-        _ = lucene_query_grammar.parse(query)
+        _ = lucene_query_grammar.parse(query.strip())
     except Exception:  # noqa -- if any exception is raised, it's not a valid query.
         return False
 
