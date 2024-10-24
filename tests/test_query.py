@@ -24,6 +24,7 @@ test_queries = [
     ("[* TO 20]", "[* TO 20]"),
     ("Blæ", "Blæ"),
     ('creator:Beethoven AND "sonata C"~4', 'creator:Beethoven AND "sonata C"~4'),
+    ('publisher:"G.H."', 'publisher:"G.H."'),
 ]
 
 
