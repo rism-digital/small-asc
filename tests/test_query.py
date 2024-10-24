@@ -24,11 +24,11 @@ test_queries = [
     ("[* TO 20]", "[* TO 20]"),
     ("Blæ", "Blæ"),
     ('creator:Beethoven AND "sonata C"~4', 'creator:Beethoven AND "sonata C"~4'),
-    ('publisher:"G.H."', 'publisher:"G.H."'),
+    ('publisher_number:"G.H."', 'publisher_number:"G.H."'),
 ]
 
 
-test_raises = ['"foo', 'bar"', "(foo", "bar)", "fo?????"]
+test_raises = ['"foo', 'bar"', "(foo", "bar)", "fo?????", 'publisher-number:"G.H."']
 
 
 class TestQuery(TestCase):
