@@ -75,19 +75,19 @@ class LuceneQueryBuilder(NodeVisitor):
         self.default_operator = default_operator
         self.replacement_field_names = replacement_field_names
 
-    def generic_visit(self, node, visited_children):
+    def generic_visit(self, node, visited_children) -> str:
         # Generic visit, just combine all child nodes into a string
         return "".join(visited_children) or node.text
 
-    def visit_query(self, node, visited_children):
+    def visit_query(self, node, visited_children) -> str:
         # Reconstruct the full query by combining all clauses
         return "".join(visited_children)
 
-    def visit_clause(self, node, visited_children):
+    def visit_clause(self, node, visited_children) -> str:
         # Clauses represent individual terms, phrases, or fielded clauses
         return "".join(visited_children)
 
-    def visit_fielded_clause(self, node, visited_children):
+    def visit_fielded_clause(self, node, visited_children) -> str:
         # Fielded clause (e.g., title:foo)
         field, _, term_or_phrase = visited_children
         if not self.replacement_field_names:
@@ -101,38 +101,33 @@ class LuceneQueryBuilder(NodeVisitor):
 
         return f"{field_name}:{term_or_phrase}"
 
-    def visit_field(self, node, visited_children):
+    def visit_field(self, node, visited_children) -> str:
         # Field name, just return the text (e.g., title, author)
-        return node.text
+        return f"{node.text}"
 
-    def visit_term_sequence(self, node, visited_children):
+    def visit_term_sequence(self, node, visited_children) -> str:
         # Sequence of terms (e.g., foo bar)
         return "".join(visited_children)
 
-    def visit_term(self, node, visited_children):
+    def visit_term(self, node, visited_children) -> str:
         # Terms (e.g., foo)
         return "".join(visited_children)
 
-    def visit_phrase(self, node, visited_children):
+    def visit_phrase(self, node, visited_children) -> str:
         # Phrases (e.g., "hello world")
         return "".join(visited_children)
 
-    def visit_literal(self, node, visited_children):
+    def visit_literal(self, node, visited_children) -> str:
         # Literal terms, just return the text
         return node.text
 
-    def visit_optional_operator(self, node, visited_children):
+    def visit_optional_operator(self, node, visited_children) -> str:
         # Optional operators (+ or -)
-        return node.text
-
-    def visit_boolean_operator(self, node, visited_children):
-        # Boolean operators (AND, OR, NOT)
         return f"{node.text}"
 
-    def visit_default_boolean_operator(self, node, visited_children):
-        # Implicit default boolean operator is AND
-        print("tt", node.text)
-        return f" {self.default_operator} "
+    def visit_boolean_operator(self, node, visited_children) -> str:
+        # Boolean operators (AND, OR, NOT)
+        return f"{node.text}"
 
     def visit_boost(self, node, visited_children):
         # Boost (e.g., ^2.0)
