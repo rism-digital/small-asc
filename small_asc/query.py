@@ -1,6 +1,6 @@
 from typing import Optional
 
-from parsimonious.exceptions import ParseError
+from parsimonious.exceptions import ParseError, VisitationError
 from parsimonious.grammar import Grammar
 from parsimonious.nodes import Node, NodeVisitor
 
@@ -175,7 +175,12 @@ def _run_grammar(query: str, fields: Optional[dict] = None) -> str:
         raise QueryParseError() from e
 
     string_builder = LuceneQueryBuilder(replacement_field_names=fields)
-    return string_builder.visit(tree)
+    try:
+        response = string_builder.visit(tree)
+    except VisitationError as e:
+        raise FieldNotFoundError() from e
+
+    return response
 
 
 if __name__ == "__main__":
