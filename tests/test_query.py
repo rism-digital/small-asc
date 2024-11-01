@@ -25,6 +25,8 @@ test_queries = [
     ("Blæ", "Blæ"),
     ('creator:Beethoven AND "sonata C"~4', 'creator:Beethoven AND "sonata C"~4'),
     ('publisher_number:"G.H."', 'publisher_number:"G.H."'),
+    ("CH-E", "CH-E"),
+    ("CH -E", "CH -E"),
 ]
 
 
