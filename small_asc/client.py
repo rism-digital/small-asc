@@ -29,6 +29,7 @@ class JsonAPIRequest(TypedDict, total=False):
     sort: str
     fields: list[str]
     facet: list[dict]
+    delete: dict[str, str]
 
 
 class JSONTermsSuggestRequest(TypedDict, total=False):
@@ -366,11 +367,11 @@ class Solr:
 
 
 async def _post_data_to_solr_with_session(
-    url: str, data: JsonAPIRequest, session: aiohttp.ClientSession
+    url: str, data: JsonAPIRequest | list[dict], session: aiohttp.ClientSession
 ) -> Json:
     headers: dict = {"Accept-Encoding": "gzip", "Content-Type": "application/json"}
 
-    async with session.post(url, json=data, headers=headers) as res:
+    async with session.post(url, json=data, headers=headers, ssl=False) as res:
         if res.status != 200:
             error_message: str = "Solr responded with HTTP Error %s: %s"
             raise SolrError(error_message % (res.status, res.reason))
@@ -380,8 +381,10 @@ async def _post_data_to_solr_with_session(
     return json_result
 
 
-async def _post_data_to_solr(url: str, data: JsonAPIRequest) -> Json:
+async def _post_data_to_solr(url: str, data: JsonAPIRequest | list[dict]) -> Json:
+    connector = aiohttp.TCPConnector(ssl=False, ttl_dns_cache=1200)
     async with aiohttp.ClientSession(
-        json_serialize=lambda x: orjson.dumps(x).decode("utf-8")
+        json_serialize=lambda x: orjson.dumps(x).decode("utf-8"),
+        connector=connector,
     ) as session:
         return await _post_data_to_solr_with_session(url, data, session)
