@@ -1,6 +1,6 @@
 from typing import Optional
 
-from parsimonious.exceptions import ParseError, VisitationError
+from parsimonious.exceptions import ParseError
 from parsimonious.grammar import Grammar
 from parsimonious.nodes import Node, NodeVisitor
 
@@ -94,9 +94,8 @@ class LuceneQueryBuilder(NodeVisitor):
             return f"{field}:{term_or_phrase}"
 
         if field not in self.replacement_field_names:
-            raise FieldNotFoundError(
-                f"Field {field} is not in the list of replacement fields."
-            )
+            raise FieldNotFoundError(f'Field "{field}" is not a valid search field.')
+
         field_name: str = self.replacement_field_names[field]
 
         return f"{field_name}:{term_or_phrase}"
@@ -175,10 +174,10 @@ def _run_grammar(query: str, fields: Optional[dict] = None) -> str:
         raise QueryParseError() from e
 
     string_builder = LuceneQueryBuilder(replacement_field_names=fields)
-    try:
-        response = string_builder.visit(tree)
-    except VisitationError as e:
-        raise FieldNotFoundError() from e
+    string_builder.unwrapped_exceptions = (FieldNotFoundError,)
+    # This will raise an exception if the fields are not valid, and this
+    # should be caught by the application caller.
+    response: str = string_builder.visit(tree)
 
     return response
 
