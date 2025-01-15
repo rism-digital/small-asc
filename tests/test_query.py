@@ -1,6 +1,11 @@
 from unittest import TestCase
 
-from small_asc.query import QueryParseError, parse_query, validate_query
+from small_asc.query import (
+    QueryParseError,
+    parse_query,
+    parse_with_field_replacements,
+    validate_query,
+)
 
 test_queries = [
     ("foo", "foo"),
@@ -32,6 +37,16 @@ test_queries = [
 
 test_raises = ['"foo', 'bar"', "(foo", "bar)", "fo?????", 'publisher-number:"G.H."']
 
+test_replacements = [
+    (
+        "valid_field:foo",
+        {"valid_field": "valid_solr_field"},
+        None,
+        "valid_solr_field:foo",
+    ),
+    ("raw_solr_field:bar", {}, {"raw_solr_field"}, "raw_solr_field:bar"),
+]
+
 
 class TestQuery(TestCase):
     def test_query(self):
@@ -53,3 +68,10 @@ class TestQuery(TestCase):
     def test_invalid(self):
         for query in test_raises:
             self.assertFalse(validate_query(query), msg=f"{query} is not False")
+
+    def test_valid_fields(self):
+        for query, replacement, raw, expected in test_replacements:
+            parsed = parse_with_field_replacements(query, replacement, raw_fields=raw)
+            self.assertEqual(
+                parsed, expected, msg=f"found {parsed}, expected {expected}"
+            )

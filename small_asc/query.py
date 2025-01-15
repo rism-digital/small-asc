@@ -71,9 +71,11 @@ class LuceneQueryBuilder(NodeVisitor):
         self,
         default_operator: str = "AND",
         replacement_field_names: Optional[dict] = None,
+        raw_field_names: Optional[set] = None,
     ):
         self.default_operator = default_operator
         self.replacement_field_names = replacement_field_names
+        self.raw_field_names = raw_field_names
 
     def generic_visit(self, node, visited_children) -> str:
         # Generic visit, just combine all child nodes into a string
@@ -93,10 +95,18 @@ class LuceneQueryBuilder(NodeVisitor):
         if not self.replacement_field_names:
             return f"{field}:{term_or_phrase}"
 
-        if field not in self.replacement_field_names:
+        if (
+            field not in self.replacement_field_names
+            and field not in self.raw_field_names
+        ):
             raise FieldNotFoundError(f'Field "{field}" is not a valid search field.')
 
-        field_name: str = self.replacement_field_names[field]
+        # This will get either the replacement field name, if it's in the dict,
+        # or set it to the raw field name. This depends on any violations to
+        # the allowed fields being caught in the previous step.
+        field_name: str = (
+            self.replacement_field_names.get(field, field)
+        )
 
         return f"{field_name}:{term_or_phrase}"
 
@@ -153,8 +163,10 @@ def parse_query(query: str) -> str:
     return _run_grammar(query)
 
 
-def parse_with_field_replacements(query: str, fields: dict) -> str:
-    return _run_grammar(query, fields)
+def parse_with_field_replacements(
+    query: str, fields: dict, raw_fields: Optional[set] = None
+) -> str:
+    return _run_grammar(query, fields, raw_fields)
 
 
 def validate_query(query: str) -> bool:
@@ -166,14 +178,18 @@ def validate_query(query: str) -> bool:
     return True
 
 
-def _run_grammar(query: str, fields: Optional[dict] = None) -> str:
+def _run_grammar(
+    query: str, fields: Optional[dict] = None, raw_fields: Optional[set] = None
+) -> str:
     try:
         # Leading and trailing spaces are not permitted so we strip them off.
         tree: Node = lucene_query_grammar.parse(query.strip())
     except ParseError as e:
         raise QueryParseError() from e
 
-    string_builder = LuceneQueryBuilder(replacement_field_names=fields)
+    string_builder = LuceneQueryBuilder(
+        replacement_field_names=fields, raw_field_names=raw_fields
+    )
     string_builder.unwrapped_exceptions = (FieldNotFoundError,)
     # This will raise an exception if the fields are not valid, and this
     # should be caught by the application caller.
