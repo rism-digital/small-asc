@@ -1,6 +1,7 @@
 from unittest import TestCase
 
 from small_asc.query import (
+    FieldNotFoundError,
     QueryParseError,
     parse_query,
     parse_with_field_replacements,
@@ -47,6 +48,16 @@ test_replacements = [
     ("raw_solr_field:bar", {}, {"raw_solr_field"}, "raw_solr_field:bar"),
 ]
 
+test_replacements_raises = [
+    ("invalid_field:foo", {"not_a": "valid_replacement"}, None, "invalid_field:foo"),
+    (
+        "invalid_field:foo",
+        {"not_a": "valid_replacement"},
+        {"also_not"},
+        "invalid_field:foo",
+    ),
+]
+
 
 class TestQuery(TestCase):
     def test_query(self):
@@ -75,3 +86,10 @@ class TestQuery(TestCase):
             self.assertEqual(
                 parsed, expected, msg=f"found {parsed}, expected {expected}"
             )
+
+    def test_invalid_fields(self):
+        for query, replacement, raw, _ in test_replacements_raises:
+            with self.assertRaises(
+                FieldNotFoundError, msg=f"{query} did not raise FieldNotFoundError"
+            ):
+                _ = parse_with_field_replacements(query, replacement, raw_fields=raw)
