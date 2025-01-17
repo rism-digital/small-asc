@@ -74,8 +74,8 @@ class LuceneQueryBuilder(NodeVisitor):
         raw_field_names: Optional[set] = None,
     ):
         self.default_operator = default_operator
-        self.replacement_field_names = replacement_field_names
-        self.raw_field_names = raw_field_names
+        self.replacement_field_names: Optional[dict] = replacement_field_names
+        self.raw_field_names: set = raw_field_names or set()
 
     def generic_visit(self, node, visited_children) -> str:
         # Generic visit, just combine all child nodes into a string
@@ -95,14 +95,15 @@ class LuceneQueryBuilder(NodeVisitor):
         if not self.replacement_field_names:
             return f"{field}:{term_or_phrase}"
 
-        if field not in self.replacement_field_names or (
-            self.raw_field_names and field not in self.raw_field_names
+        if (
+            field not in self.replacement_field_names
+            and field not in self.raw_field_names
         ):
             raise FieldNotFoundError(f'Field "{field}" is not a valid search field.')
 
         # This will get either the replacement field name, if it's in the dict,
-        # or set it to the raw field name. This depends on any violations to
-        # the allowed fields being caught in the previous step.
+        # or set it to the raw field name. Any violations to
+        # the allowed fields should be caught in the previous step.
         field_name: str = self.replacement_field_names.get(field, field)
 
         return f"{field_name}:{term_or_phrase}"

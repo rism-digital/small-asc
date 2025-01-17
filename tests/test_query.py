@@ -46,6 +46,13 @@ test_replacements = [
         "valid_solr_field:foo",
     ),
     ("raw_solr_field:bar", {}, {"raw_solr_field"}, "raw_solr_field:bar"),
+    ("series:12345", {"series": "series_sm"}, {"intervals_bi"}, "series_sm:12345"),
+    (
+        'series:12345 intervals_bi:"-1 -1 0 -1"',
+        {"series": "series_sm"},
+        {"intervals_bi"},
+        'series_sm:12345 intervals_bi:"-1 -1 0 -1"',
+    ),
 ]
 
 test_replacements_raises = [
@@ -55,6 +62,12 @@ test_replacements_raises = [
         {"not_a": "valid_replacement"},
         {"also_not"},
         "invalid_field:foo",
+    ),
+    (
+        'invalid_field:foo intervals_bi:"1 1 1 0"',
+        {"not_a": "valid_replacement"},
+        {"also_not", "intervals_bi"},
+        'invalid_field:foo intervals_bi:"1 1 1 0"',
     ),
 ]
 
