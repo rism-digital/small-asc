@@ -386,5 +386,6 @@ async def _post_data_to_solr(url: str, data: JsonAPIRequest | list[dict]) -> Jso
     async with aiohttp.ClientSession(
         json_serialize=lambda x: orjson.dumps(x).decode("utf-8"),
         connector=connector,
+        timeout=20,
     ) as session:
         return await _post_data_to_solr_with_session(url, data, session)

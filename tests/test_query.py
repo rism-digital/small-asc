@@ -36,7 +36,15 @@ test_queries = [
 ]
 
 
-test_raises = ['"foo', 'bar"', "(foo", "bar)", "fo?????", 'publisher-number:"G.H."']
+test_raises = [
+    '"foo',
+    'bar"',
+    "(foo",
+    "bar)",
+    "fo?????",
+    'publisher-number:"G.H."',
+    'series:"1234*"',
+]
 
 test_replacements = [
     (
