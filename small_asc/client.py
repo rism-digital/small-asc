@@ -1,6 +1,6 @@
 import logging
 import math
-from collections.abc import Generator
+from collections.abc import AsyncGenerator
 from typing import Any, Optional, TypeAlias, TypedDict, Union
 
 import aiohttp
@@ -167,7 +167,7 @@ class Results:
 
         return False
 
-    async def __aiter__(self) -> Generator:
+    async def __aiter__(self) -> AsyncGenerator[Any, None]:
         if self._is_cursor is False:
             _docslen: int = len(self.docs)
             while self._page_idx < _docslen:
