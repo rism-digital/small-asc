@@ -5,7 +5,7 @@ from typing import Any, TypeAlias, Union
 import httpx
 import orjson
 
-from small_asc.client import JsonAPIRequest, SolrError
+from small_asc.client import JsonAPIRequest, JSONTermsSuggestRequest, SolrError
 
 Json: TypeAlias = Union[list[Any], dict[Any, Any]]
 
@@ -179,6 +179,35 @@ class SyncSolr:
         delete_url: str = f"{base_url}?commit=true"
         res: Json = _post_data_to_solr(delete_url, {"delete": {"query": query}})
         return res
+
+    def term_suggest(
+        self, query: JSONTermsSuggestRequest, handler: str = "/terms"
+    ) -> Json | None:
+        """
+        Uses the Solr terms handler to provide a suggester. Requires that both the 'fields' and 'query'
+        parameters are provided, e.g.,
+
+        t: dict = term_suggest({"query": "Moza", "fields": ["creator_name_s"]})
+
+        This will apply a regex query of ".*Moza.*" to the query, meaning it will find the top 10 entries, by
+        document count, for a term matching this pattern.
+
+        :param query: A JSONTermsSuggestRequest-compliant dictionary (required)
+        :param handler: An optional Solr handler for switching the handlers.
+        :return: A dictionary containing the Solr response
+        """
+        base_url: str = self._create_url(handler)
+        solr_query: dict = {
+            "params": {
+                "omitHeader": "true",
+                "terms": "true",
+                "terms.fl": query["fields"],
+                "terms.regex": f".*{query['query']}.*",
+                "terms.regex.flag": ["case_insensitive", "canon_eq", "unicode_case"],
+            }
+        }
+
+        return _post_data_to_solr(base_url, solr_query)
 
     def _create_url(self, handler: str) -> str:
         return "/".join([self._url.rstrip("/"), handler.lstrip("/")])
