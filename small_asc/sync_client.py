@@ -187,7 +187,7 @@ class SyncSolr:
 def _post_data_to_solr_with_client(
     url: str, data: JsonAPIRequest | list[dict], client: httpx.Client
 ) -> Json:
-    headers: dict = {"Accept-Encoding": "gzip", "Content-Type": "application/json"}
+    headers: dict = {"Content-Type": "application/json"}
     res = client.post(url, json=data, headers=headers)
     if res.status_code != 200:
         error_message: str = "Solr responded with HTTP Error %s: %s"
