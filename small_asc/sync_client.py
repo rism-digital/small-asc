@@ -222,9 +222,7 @@ def _post_data_to_solr_with_client(
         error_message: str = "Solr responded with HTTP Error %s: %s"
         raise SolrError(error_message % (res.status_code, res.reason_phrase))
 
-    json_result: Json = orjson.loads(res.text)
-
-    return json_result
+    return orjson.loads(res.text)
 
 
 def _post_data_to_solr(url: str, data: JsonAPIRequest | list[dict]) -> Json:
