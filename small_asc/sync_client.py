@@ -57,7 +57,7 @@ class SyncResults:
         _rows: int = _docslen if _docslen > 0 else 1
         self.num_pages: int = int(math.ceil(self.hits / _rows))
 
-    def __len__(self):
+    def __len__(self) -> int:
         if self._is_cursor:
             return self.hits
         else:
@@ -111,7 +111,7 @@ class SyncSolr:
         cursor: bool = False,
         handler: str = "/select",
         client: httpx.Client | None = None,
-    ):
+    ) -> SyncResults:
         url: str = self._create_url(handler)
 
         if cursor:
@@ -157,7 +157,7 @@ class SyncSolr:
         fields: list[str] | None = None,
         handler: str = "/get",
         client: httpx.Client | None = None,
-    ) -> Json:
+    ) -> Json | None:
         url: str = self._create_url(handler)
         qdoc: dict = {"params": {"id": docid}}
 
@@ -191,7 +191,7 @@ def _post_data_to_solr_with_client(
     res = client.post(url, json=data, headers=headers)
     if res.status_code != 200:
         error_message: str = "Solr responded with HTTP Error %s: %s"
-        raise SolrError(error_message % (res.status, res.reason))
+        raise SolrError(error_message % (res.status_code, res.reason_phrase))
 
     json_result: Json = orjson.loads(res.text)
 
