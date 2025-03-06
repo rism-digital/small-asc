@@ -10,6 +10,9 @@ log = logging.getLogger(__name__)
 
 Json: TypeAlias = Union[list[Any], dict[Any, Any]]
 
+# Allow a request to be retried up to two times.
+NUM_RETRIES: int = 2
+
 
 class SolrError(Exception):
     pass
@@ -380,5 +383,6 @@ async def _post_data_to_solr_with_client(
 
 
 async def _post_data_to_solr(url: str, data: JsonAPIRequest | list[dict]) -> Json:
-    async with httpx.AsyncClient() as client:
+    transport = httpx.AsyncHTTPTransport(retries=NUM_RETRIES)
+    async with httpx.AsyncClient(transport=transport) as client:
         return await _post_data_to_solr_with_client(url, data, client)

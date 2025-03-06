@@ -5,7 +5,12 @@ from typing import Any, TypeAlias, Union
 import httpx
 import orjson
 
-from small_asc.client import JsonAPIRequest, JSONTermsSuggestRequest, SolrError
+from small_asc.client import (
+    NUM_RETRIES,
+    JsonAPIRequest,
+    JSONTermsSuggestRequest,
+    SolrError,
+)
 
 Json: TypeAlias = Union[list[Any], dict[Any, Any]]
 
@@ -226,5 +231,6 @@ def _post_data_to_solr_with_client(
 
 
 def _post_data_to_solr(url: str, data: JsonAPIRequest | list[dict]) -> Json:
-    with httpx.Client() as client:
+    transport = httpx.HTTPTransport(retries=NUM_RETRIES)
+    with httpx.Client(transport=transport) as client:
         return _post_data_to_solr_with_client(url, data, client)
