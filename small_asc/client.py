@@ -384,5 +384,6 @@ async def _post_data_to_solr_with_client(
 
 async def _post_data_to_solr(url: str, data: JsonAPIRequest | list[dict]) -> Json:
     transport = httpx.AsyncHTTPTransport(retries=NUM_RETRIES)
-    async with httpx.AsyncClient(transport=transport) as client:
+    timeout = httpx.Timeout(10.0)
+    async with httpx.AsyncClient(transport=transport, timeout=timeout) as client:
         return await _post_data_to_solr_with_client(url, data, client)
