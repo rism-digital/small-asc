@@ -1,5 +1,3 @@
-from typing import Optional
-
 from parsimonious.exceptions import ParseError
 from parsimonious.grammar import Grammar
 from parsimonious.nodes import Node, NodeVisitor
@@ -70,11 +68,11 @@ class LuceneQueryBuilder(NodeVisitor):
     def __init__(
         self,
         default_operator: str = "AND",
-        replacement_field_names: Optional[dict] = None,
-        raw_field_names: Optional[set] = None,
+        replacement_field_names: dict | None = None,
+        raw_field_names: set | None = None,
     ):
         self.default_operator = default_operator
-        self.replacement_field_names: Optional[dict] = replacement_field_names
+        self.replacement_field_names: dict | None = replacement_field_names
         self.raw_field_names: set = raw_field_names or set()
 
     def generic_visit(self, node, visited_children) -> str:
@@ -162,7 +160,7 @@ def parse_query(query: str) -> str:
 
 
 def parse_with_field_replacements(
-    query: str, fields: dict, raw_fields: Optional[set] = None
+    query: str, fields: dict, raw_fields: set | None = None
 ) -> str:
     return _run_grammar(query, fields, raw_fields)
 
@@ -177,7 +175,7 @@ def validate_query(query: str) -> bool:
 
 
 def _run_grammar(
-    query: str, fields: Optional[dict] = None, raw_fields: Optional[set] = None
+    query: str, fields: dict | None = None, raw_fields: set | None = None
 ) -> str:
     try:
         # Leading and trailing spaces are not permitted so we strip them off.

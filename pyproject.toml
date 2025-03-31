@@ -1,7 +1,8 @@
 [project]
 name = "small-asc"
 description = "A small asynchronous Solr client"
-version = "0.23.0"
+license = "MIT"
+version = "0.24.0"
 authors = [{name = "Andrew Hankinson", email = "andrew.hankinson@rism.digital"}]
 requires-python = '>=3.11,<4.0'
 dependencies = [
@@ -9,6 +10,11 @@ dependencies = [
     'parsimonious (>=0.10.0,<0.11.0)',
     "httpx (>=0.28.1,<0.29.0)"
 ]
+[project.urls]
+Repository = "https://github.com/rism-digital/small-asc"
+
+[tool.setuptools.package-data]
+small-asc = ['py.typed']
 
 [tool.poetry]
 requires-poetry = '>=2.0,<3.0'

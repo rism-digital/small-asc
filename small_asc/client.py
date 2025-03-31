@@ -1,14 +1,14 @@
 import logging
 import math
 from collections.abc import AsyncGenerator
-from typing import Any, Optional, TypeAlias, TypedDict, Union
+from typing import Any, TypeAlias, TypedDict
 
 import httpx
 import orjson
 
 log = logging.getLogger(__name__)
 
-Json: TypeAlias = Union[list[Any], dict[Any, Any]]
+Json: TypeAlias = list[Any] | dict[Any, Any]
 JsonObject: TypeAlias = dict[Any, Any]
 
 # Allow a request to be retried up to two times.
@@ -26,7 +26,7 @@ class JsonAPIRequest(TypedDict, total=False):
     """
 
     query: str
-    filter: Union[str, list[str]]
+    filter: str | list[str]
     params: dict
     offset: int  # aka 'start'
     limit: int  # aka 'rows'
@@ -109,7 +109,7 @@ class Results:
         )
         self.grouped: dict = raw_response.get("grouped", {})
 
-        self.nextCursorMark: Optional[str] = raw_response.get("nextCursorMark")
+        self.nextCursorMark: str | None = raw_response.get("nextCursorMark")
 
         # These are for iterating pages
         self.current_page: int = 1
@@ -192,11 +192,14 @@ class Results:
                     )
                     if self._client:
                         self.raw_response = await _post_data_to_solr_with_client(  # type: ignore
-                            self._query_url, self._query, self._client  # type: ignore
+                            self._query_url,
+                            self._query,
+                            self._client,  # type: ignore
                         )
                     else:
                         self.raw_response = await _post_data_to_solr(  # type: ignore
-                            self._query_url, self._query  # type: ignore
+                            self._query_url,
+                            self._query,  # type: ignore
                         )
                     self.__set_instance_values(self.raw_response)
                     self.current_page += 1
@@ -344,7 +347,7 @@ class Solr:
 
     async def term_suggest(
         self, query: JSONTermsSuggestRequest, handler: str = "/terms"
-    ) -> Optional[Json]:
+    ) -> Json | None:
         """
         Uses the Solr terms handler to provide a suggester. Requires that both the 'fields' and 'query'
         parameters are provided, e.g.,
