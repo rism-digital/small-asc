@@ -9,6 +9,7 @@ import orjson
 log = logging.getLogger(__name__)
 
 Json: TypeAlias = Union[list[Any], dict[Any, Any]]
+JsonObject: TypeAlias = dict[Any, Any]
 
 # Allow a request to be retried up to two times.
 NUM_RETRIES: int = 2
@@ -71,17 +72,17 @@ class Results:
 
     def __init__(
         self,
-        result_json: dict,
-        url: Optional[str] = None,
-        query: Optional[JsonAPIRequest] = None,
-        client: Optional[httpx.AsyncClient] = None,
+        result_json: JsonObject,
+        url: str | None = None,
+        query: JsonAPIRequest | None = None,
+        client: httpx.AsyncClient | None = None,
     ) -> None:
-        self.raw_response: Json = result_json
+        self.raw_response: JsonObject = result_json
         self.__set_instance_values(result_json)
 
         # parameters supporting cursor-based results
-        self._query_url: Optional[str] = url
-        self._query: Optional[JsonAPIRequest] = query
+        self._query_url: str | None = url
+        self._query: JsonAPIRequest | None = query
 
         # condense the check into a single boolean. If this is a cursor query, then the original URL and the
         # original query dictionary are passed into the results so that we can re-execute the search for the next
@@ -90,9 +91,9 @@ class Results:
         # These are for iterating documents
         self._idx: int = 0
         self._page_idx: int = 0
-        self._client: Optional[httpx.AsyncClient] = client
+        self._client: httpx.AsyncClient | None = client
 
-    def __set_instance_values(self, raw_response: dict) -> None:
+    def __set_instance_values(self, raw_response: JsonObject) -> None:
         response_part: dict = raw_response.get("response", {})
         self.docs: list = response_part.get("docs", [])
         self.hits: int = response_part.get("numFound", 0)
@@ -103,7 +104,7 @@ class Results:
         self.facets: dict = raw_response.get("facet_counts", {})
         self.spellcheck: dict = raw_response.get("spellcheck", {})
         self.stats: dict = raw_response.get("stats", {})
-        self.qtime: Optional[str] = raw_response.get("responseHeader", {}).get(
+        self.qtime: str | None = raw_response.get("responseHeader", {}).get(
             "QTime", None
         )
         self.grouped: dict = raw_response.get("grouped", {})
@@ -148,6 +149,9 @@ class Results:
         if not self._is_cursor:
             return False
 
+        if not self._query_url:
+            return False
+
         if self._query is None:
             self._query = {}
 
@@ -156,11 +160,11 @@ class Results:
                 self._query["params"].update({"cursorMark": self.nextCursorMark})
 
             if self._client:
-                self.raw_response = await _post_data_to_solr_with_client(
+                self.raw_response = await _post_data_to_solr_with_client(  # type: ignore
                     self._query_url, self._query, self._client
                 )
             else:
-                self.raw_response = await _post_data_to_solr(
+                self.raw_response = await _post_data_to_solr(  # type: ignore
                     self._query_url, self._query
                 )
 
@@ -183,16 +187,16 @@ class Results:
                 except IndexError:
                     self._page_idx = 0
                     # update the cursormark with the cursor mark from the previous query.
-                    self._query.get("params", {}).update(
+                    self._query.get("params", {}).update(  # type: ignore
                         {"cursorMark": self.nextCursorMark}
                     )
                     if self._client:
-                        self.raw_response = await _post_data_to_solr_with_client(
-                            self._query_url, self._query, self._client
+                        self.raw_response = await _post_data_to_solr_with_client(  # type: ignore
+                            self._query_url, self._query, self._client  # type: ignore
                         )
                     else:
-                        self.raw_response = await _post_data_to_solr(
-                            self._query_url, self._query
+                        self.raw_response = await _post_data_to_solr(  # type: ignore
+                            self._query_url, self._query  # type: ignore
                         )
                     self.__set_instance_values(self.raw_response)
                     self.current_page += 1
@@ -227,7 +231,7 @@ class Solr:
         query: JsonAPIRequest,
         cursor: bool = False,
         handler: str = "/select",
-        client: Optional[httpx.AsyncClient] = None,
+        client: httpx.AsyncClient | None = None,
     ) -> Results:
         """
         Consumes a Solr JSON Request API configuration.
@@ -276,11 +280,11 @@ class Solr:
                     "Could not determine a sort parameter when performing a cursor query."
                 )
 
-        search_results: Union[list[Any], dict[Any, Any]]
+        search_results: JsonObject
         if client:
-            search_results = await _post_data_to_solr_with_client(url, query, client)
+            search_results = await _post_data_to_solr_with_client(url, query, client)  # type: ignore
         else:
-            search_results = await _post_data_to_solr(url, query)
+            search_results = await _post_data_to_solr(url, query)  # type: ignore
 
         if cursor and client:
             return Results(search_results, url, query, client)
@@ -296,10 +300,10 @@ class Solr:
     async def get(
         self,
         docid: str,
-        fields: Optional[list[str]] = None,
+        fields: list[str] | None = None,
         handler: str = "/get",
-        client: Optional[httpx.AsyncClient] = None,
-    ) -> Optional[Json]:
+        client: httpx.AsyncClient | None = None,
+    ) -> Json | None:
         """
         Sends a request to the Solr RealtimeGetHandler endpoint to fetch a single
          record by its ID. Special consideration must be made to package up the
@@ -317,20 +321,22 @@ class Solr:
         if fields and isinstance(fields, list):
             qdoc.update({"fields": fields})
 
-        doc: Json
+        doc: JsonObject
         if client:
-            doc = await _post_data_to_solr_with_client(url, qdoc, client)
+            doc = await _post_data_to_solr_with_client(url, qdoc, client)  # type: ignore
         else:
-            doc = await _post_data_to_solr(url, qdoc)
+            doc = await _post_data_to_solr(url, qdoc)  # type: ignore
 
         return doc.get("doc", None)
 
-    async def delete(self, query: str, handler: str = "/update") -> Optional[dict]:
+    async def delete(
+        self, query: str, handler: str = "/update"
+    ) -> list[Any] | dict[Any, Any]:
         base_url: str = self._create_url(handler)
         # automatically commit the result of the delete query so we don't have
         # old docs hanging around.
         delete_url: str = f"{base_url}?commit=true"
-        res: Union[list[Any], dict[Any, Any]] = await _post_data_to_solr(
+        res: list[Any] | dict[Any, Any] = await _post_data_to_solr(
             delete_url, {"delete": {"query": query}}
         )
 
@@ -370,8 +376,8 @@ class Solr:
 
 
 async def _post_data_to_solr_with_client(
-    url: str, data: JsonAPIRequest | list[dict], client: httpx.AsyncClient
-) -> Json:
+    url: str, data: JsonAPIRequest | dict | list[dict], client: httpx.AsyncClient
+) -> Json | JsonObject:
     headers: dict = {"Accept-Encoding": "gzip", "Content-Type": "application/json"}
     res = await client.post(url, json=data, headers=headers)
 
@@ -382,7 +388,9 @@ async def _post_data_to_solr_with_client(
     return orjson.loads(res.text)
 
 
-async def _post_data_to_solr(url: str, data: JsonAPIRequest | list[dict]) -> Json:
+async def _post_data_to_solr(
+    url: str, data: JsonAPIRequest | dict | list[dict]
+) -> Json | JsonObject:
     transport = httpx.AsyncHTTPTransport(retries=NUM_RETRIES)
     timeout = httpx.Timeout(10.0)
     async with httpx.AsyncClient(transport=transport, timeout=timeout) as client:
