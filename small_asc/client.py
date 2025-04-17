@@ -32,7 +32,7 @@ class JsonAPIRequest(TypedDict, total=False):
     limit: int  # aka 'rows'
     sort: str
     fields: list[str]
-    facet: list[dict]
+    facet: dict[str, dict | str]
     delete: dict[str, str]
 
 
@@ -124,8 +124,7 @@ class Results:
     def __len__(self):
         if self._is_cursor:
             return self.hits
-        else:
-            return len(self.docs)
+        return len(self.docs)
 
     async def nextpage(self) -> bool:
         """
@@ -192,13 +191,13 @@ class Results:
                     )
                     if self._client:
                         self.raw_response = await _post_data_to_solr_with_client(  # type: ignore
-                            self._query_url,
-                            self._query,
+                            self._query_url,  # type: ignore
+                            self._query,  # type: ignore
                             self._client,  # type: ignore
                         )
                     else:
                         self.raw_response = await _post_data_to_solr(  # type: ignore
-                            self._query_url,
+                            self._query_url,  # type: ignore
                             self._query,  # type: ignore
                         )
                     self.__set_instance_values(self.raw_response)
@@ -206,8 +205,7 @@ class Results:
 
                     if self.docs:
                         yield self.docs[self._page_idx]
-                    else:
-                        break
+                    break
 
                 self._page_idx += 1
                 self._idx += 1
