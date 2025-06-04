@@ -380,11 +380,18 @@ async def _post_data_to_solr_with_client(
     url: str, data: JsonAPIRequest | dict | list[dict], client: httpx.AsyncClient
 ) -> Json | JsonObject:
     headers: dict = {"Accept-Encoding": "gzip", "Content-Type": "application/json"}
-    res = await client.post(url, json=data, headers=headers)
+
+    try:
+        res = await client.post(url, json=data, headers=headers)
+    except httpx.HTTPError as err:
+        raise SolrError(
+            f"A non-status exception was raised when communicating with Solr: {err}"
+        ) from err
 
     if res.status_code != 200:
-        error_message: str = "Solr responded with HTTP Error %s: %s"
-        raise SolrError(error_message % (res.status_code, res.reason_phrase))
+        raise SolrError(
+            f"Solr responded with HTTP Error {res.status_code}: {res.reason_phrase}"
+        )
 
     return orjson.loads(res.text)
 
@@ -393,6 +400,6 @@ async def _post_data_to_solr(
     url: str, data: JsonAPIRequest | dict | list[dict]
 ) -> Json | JsonObject:
     transport = httpx.AsyncHTTPTransport(retries=NUM_RETRIES)
-    timeout = httpx.Timeout(10.0)
+    timeout = httpx.Timeout(20.0)
     async with httpx.AsyncClient(transport=transport, timeout=timeout) as client:
         return await _post_data_to_solr_with_client(url, data, client)
