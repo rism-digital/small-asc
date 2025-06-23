@@ -205,7 +205,8 @@ class Results:
 
                     if self.docs:
                         yield self.docs[self._page_idx]
-                    break
+                    else:
+                        break
 
                 self._page_idx += 1
                 self._idx += 1
