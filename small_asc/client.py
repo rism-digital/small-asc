@@ -61,7 +61,7 @@ class Results:
         "stats",
         "qtime",
         "grouped",
-        "nextCursorMark",
+        "next_cursor_mark",
         "_query_url",
         "_query",
         "_is_cursor",
@@ -109,7 +109,7 @@ class Results:
         )
         self.grouped: dict = raw_response.get("grouped", {})
 
-        self.nextCursorMark: str | None = raw_response.get("nextCursorMark")
+        self.next_cursor_mark: str | None = raw_response.get("nextCursorMark")
 
         # These are for iterating pages
         self.current_page: int = 1
@@ -156,7 +156,7 @@ class Results:
 
         if self.current_page < self.num_pages:
             if "params" in self._query:
-                self._query["params"].update({"cursorMark": self.nextCursorMark})
+                self._query["params"].update({"cursorMark": self.next_cursor_mark})
 
             if self._client:
                 self.raw_response = await _post_data_to_solr_with_client(  # type: ignore
@@ -174,7 +174,7 @@ class Results:
         return False
 
     async def __aiter__(self) -> AsyncGenerator[Any, None]:
-        if self._is_cursor is False:
+        if not self._is_cursor:
             _docslen: int = len(self.docs)
             while self._page_idx < _docslen:
                 yield self.docs[self._page_idx]
@@ -187,7 +187,7 @@ class Results:
                     self._page_idx = 0
                     # update the cursormark with the cursor mark from the previous query.
                     self._query.get("params", {}).update(  # type: ignore
-                        {"cursorMark": self.nextCursorMark}
+                        {"cursorMark": self.next_cursor_mark}
                     )
                     if self._client:
                         self.raw_response = await _post_data_to_solr_with_client(  # type: ignore
