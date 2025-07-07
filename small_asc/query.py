@@ -30,7 +30,7 @@ lucene_query_grammar = Grammar(
     term                = literal (wildcard / fuzziness)? boost?
     phrase              = '"' literal (whitespace literal)* '"' (boost / fuzziness)?
 
-    literal             = ~r"[\w.,!:;@\^\-/]+"
+    literal             = ~r"[\w.,!:;@\^\-/\|]+"
 
     # Boolean operators
     boolean_operator    = "AND" / "OR" / "NOT"

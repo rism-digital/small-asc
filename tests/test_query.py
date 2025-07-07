@@ -33,6 +33,8 @@ test_queries = [
     ('publisher_number:"G.H."', 'publisher_number:"G.H."'),
     ("CH-E", "CH-E"),
     ("CH -E", "CH -E"),
+    ("B/I 1611|1", "B/I 1611|1"),
+    ('"B/I 1611|1"', '"B/I 1611|1"'),
 ]
 
 
