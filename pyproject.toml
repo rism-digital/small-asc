@@ -1,14 +1,14 @@
 [project]
 name = "small-asc"
-version = "0.30.1"
+version = "0.30.2"
 description = "A small asynchronous Solr client"
 authors = [{ name = "Andrew Hankinson", email = "andrew.hankinson@rism.digital" }]
 requires-python = ">=3.11,<4.0"
 license = "MIT"
 dependencies = [
-    "orjson (>=3.9.15,<4.0.0)",
-    "parsimonious (>=0.10.0,<0.11.0)",
-    "httpx (>=0.28.1,<0.29.0)",
+    "orjson>=3.9.15,<4.0.0",
+    "parsimonious>=0.10.0,<0.11.0",
+    "httpx>=0.28.1,<0.29.0",
 ]
 
 [project.urls]
@@ -21,6 +21,8 @@ dev = [
     "mypy>=1.12.0,<2",
     "pytest>=8.3.3,<9",
     "deptry>=0.23.0,<0.24",
+    "pip>=25.2",
+    "types-parsimonious>=0.10.0.20240331",
 ]
 
 [build-system]

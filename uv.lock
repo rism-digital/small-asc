@@ -371,6 +371,15 @@ wheels = [
 ]
 
 [[package]]
+name = "pip"
+version = "25.2"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/20/16/650289cd3f43d5a2fadfd98c68bd1e1e7f2550a1a5326768cddfbcedb2c5/pip-25.2.tar.gz", hash = "sha256:578283f006390f85bb6282dffb876454593d637f5d1be494b5202ce4877e71f2", size = 1840021, upload-time = "2025-07-30T21:50:15.401Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/b7/3f/945ef7ab14dc4f9d7f40288d2df998d1837ee0888ec3659c813487572faa/pip-25.2-py3-none-any.whl", hash = "sha256:6d67a2b4e7f14d8b31b8b52648866fa717f45a1eb70e83002f4331d07e953717", size = 1752557, upload-time = "2025-07-30T21:50:13.323Z" },
+]
+
+[[package]]
 name = "pluggy"
 version = "1.6.0"
 source = { registry = "https://pypi.org/simple" }
@@ -534,7 +543,7 @@ wheels = [
 
 [[package]]
 name = "small-asc"
-version = "0.30.1"
+version = "0.30.2"
 source = { editable = "." }
 dependencies = [
     { name = "httpx" },
@@ -547,8 +556,10 @@ dev = [
     { name = "deptry" },
     { name = "ipython" },
     { name = "mypy" },
+    { name = "pip" },
     { name = "pytest" },
     { name = "pytest-benchmark" },
+    { name = "types-parsimonious" },
 ]
 
 [package.metadata]
@@ -563,8 +574,10 @@ dev = [
     { name = "deptry", specifier = ">=0.23.0,<0.24" },
     { name = "ipython", specifier = ">=9.0.2,<10" },
     { name = "mypy", specifier = ">=1.12.0,<2" },
+    { name = "pip", specifier = ">=25.2" },
     { name = "pytest", specifier = ">=8.3.3,<9" },
     { name = "pytest-benchmark", specifier = ">=5.0.0,<6" },
+    { name = "types-parsimonious", specifier = ">=0.10.0.20240331" },
 ]
 
 [[package]]
@@ -597,6 +610,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/eb/79/72064e6a701c2183016abbbfedaba506d81e30e232a68c9f0d6f6fcd1574/traitlets-5.14.3.tar.gz", hash = "sha256:9ed0579d3502c94b4b3732ac120375cda96f923114522847de4b3bb98b96b6b7", size = 161621, upload-time = "2024-04-19T11:11:49.746Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/00/c0/8f5d070730d7836adc9c9b6408dec68c6ced86b304a9b26a14df072a6e8c/traitlets-5.14.3-py3-none-any.whl", hash = "sha256:b74e89e397b1ed28cc831db7aea759ba6640cb3de13090ca145426688ff1ac4f", size = 85359, upload-time = "2024-04-19T11:11:46.763Z" },
+]
+
+[[package]]
+name = "types-parsimonious"
+version = "0.10.0.20240331"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/11/8a/3e0f5d72ea35bc5fba64899fca45124a4398c78e28c40a3e119f15882d35/types-parsimonious-0.10.0.20240331.tar.gz", hash = "sha256:c9ca50c968b83203a285ee8fbe4a50c5aa6d8ca903d92802ee5398cb95608ceb", size = 5482, upload-time = "2024-03-31T02:17:49.591Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/b5/fe/f6f9b4ec9c4cd0c567bcd581d65795bb07b0613fe3d15b249af348efa42a/types_parsimonious-0.10.0.20240331-py3-none-any.whl", hash = "sha256:6828faa2b74c03d229d2ea5b661a9de47589a837fec48424804c42b9113a28cd", size = 6308, upload-time = "2024-03-31T02:17:48.098Z" },
 ]
 
 [[package]]
