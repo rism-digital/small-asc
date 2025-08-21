@@ -305,7 +305,7 @@ class Solr:
         fields: list[str] | None = None,
         handler: str = "/get",
         client: httpx.AsyncClient | None = None,
-    ) -> Json | None:
+    ) -> JsonObject | None:
         """
         Sends a request to the Solr RealtimeGetHandler endpoint to fetch a single
          record by its ID. Special consideration must be made to package up the
