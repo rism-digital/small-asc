@@ -365,8 +365,8 @@ class Solr:
             "params": {
                 "omitHeader": "true",
                 "terms": "true",
-                "terms.fl": query["fields"],
-                "terms.regex": f".*{query['query']}.*",
+                "terms.fl": query.get("fields", ""),
+                "terms.regex": f".*{query.get('query', '')}.*",
                 "terms.regex.flag": ["case_insensitive", "canon_eq", "unicode_case"],
             }
         }
