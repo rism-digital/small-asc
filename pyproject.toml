@@ -1,6 +1,6 @@
 [project]
 name = "small-asc"
-version = "0.30.3"
+version = "0.31.0"
 description = "A small asynchronous Solr client"
 authors = [{ name = "Andrew Hankinson", email = "andrew.hankinson@rism.digital" }]
 requires-python = ">=3.11,<4.0"
