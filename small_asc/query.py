@@ -95,7 +95,9 @@ class LuceneQueryBuilder(NodeVisitor):
 
     def visit_empty_field_clause(self, node, visited_children):
         field, _, _ = visited_children
-        raise EmptyFieldQueryError(f"Empty field query is not allowed: {field}:")
+        raise EmptyFieldQueryError(
+            f"Your query is empty. There must be some text following the colon. {field}:"
+        )
 
     def visit_fielded_clause(self, node, visited_children) -> str:
         # Fielded clause (e.g., title:foo)
