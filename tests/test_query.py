@@ -1,6 +1,7 @@
 from unittest import TestCase
 
 from small_asc.query import (
+    EmptyFieldQueryError,
     FieldNotFoundError,
     QueryParseError,
     parse_query,
@@ -81,6 +82,11 @@ test_replacements_raises = [
     ),
 ]
 
+test_empty_raises = [
+    "shelfmark:",
+    "shelfmark:    ",
+]
+
 
 class TestQuery(TestCase):
     def test_query(self):
@@ -116,3 +122,10 @@ class TestQuery(TestCase):
                 FieldNotFoundError, msg=f"{query} did not raise FieldNotFoundError"
             ):
                 _ = parse_with_field_replacements(query, replacement, raw_fields=raw)
+
+    def test_empty_raises(self):
+        for query in test_empty_raises:
+            with self.assertRaises(
+                EmptyFieldQueryError, msg=f"{query} did not raise FieldNotFoundError"
+            ):
+                _ = parse_query(query)

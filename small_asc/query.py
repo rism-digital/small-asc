@@ -7,7 +7,9 @@ lucene_query_grammar = Grammar(
     r"""
     query               = clause (whitespace clause)*
 
-    clause              = optional_operator? (fielded_clause / term_or_phrase / boolean_clause / range_clause)
+    clause              = optional_operator? (empty_field_clause / fielded_clause / term_or_phrase / boolean_clause / range_clause)
+
+    empty_field_clause  = field_name ":" !~r"."
 
     # Fielded clause (e.g., title:foo, creator:Palestrina)
     fielded_clause      = field_name ":" (term / phrase / range_clause / boolean_clause)
@@ -60,6 +62,10 @@ class FieldNotFoundError(Exception):
     pass
 
 
+class EmptyFieldQueryError(Exception):
+    pass
+
+
 class QueryParseError(Exception):
     pass
 
@@ -86,6 +92,10 @@ class LuceneQueryBuilder(NodeVisitor):
     def visit_clause(self, node, visited_children) -> str:
         # Clauses represent individual terms, phrases, or fielded clauses
         return "".join(visited_children)
+
+    def visit_empty_field_clause(self, node, visited_children):
+        field, _, _ = visited_children
+        raise EmptyFieldQueryError(f"Empty field query is not allowed: {field}:")
 
     def visit_fielded_clause(self, node, visited_children) -> str:
         # Fielded clause (e.g., title:foo)
@@ -186,7 +196,7 @@ def _run_grammar(
     string_builder = LuceneQueryBuilder(
         replacement_field_names=fields, raw_field_names=raw_fields
     )
-    string_builder.unwrapped_exceptions = (FieldNotFoundError,)
+    string_builder.unwrapped_exceptions = (FieldNotFoundError, EmptyFieldQueryError)
     # This will raise an exception if the fields are not valid, and this
     # should be caught by the application caller.
     response: str = string_builder.visit(tree)
@@ -195,6 +205,6 @@ def _run_grammar(
 
 
 if __name__ == "__main__":
-    q = 'title:"foo" creator:Bar '
+    q = "title:"
     s = parse_query(q.strip())
     print(s)
