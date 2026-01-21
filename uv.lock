@@ -650,7 +650,7 @@ wheels = [
 
 [[package]]
 name = "small-asc"
-version = "0.30.3"
+version = "0.31.0"
 source = { editable = "." }
 dependencies = [
     { name = "httpx" },
