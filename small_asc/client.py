@@ -1,10 +1,12 @@
 import logging
 import math
 from collections.abc import AsyncGenerator
+from datetime import timedelta
 from typing import Any, TypeAlias, TypedDict
 
-import httpx
 import orjson
+from pyreqwest.client import Client, ClientBuilder
+from pyreqwest.exceptions import RequestError
 
 log = logging.getLogger(__name__)
 
@@ -12,7 +14,7 @@ Json: TypeAlias = list[Any] | dict[Any, Any]
 JsonObject: TypeAlias = dict[Any, Any]
 
 # Allow a request to be retried up to two times.
-NUM_RETRIES: int = 2
+NUM_RETRIES: int = 3
 
 
 class SolrError(Exception):
@@ -75,7 +77,7 @@ class Results:
         result_json: JsonObject,
         url: str | None = None,
         query: JsonAPIRequest | None = None,
-        client: httpx.AsyncClient | None = None,
+        client: Client | None = None,
     ) -> None:
         self.raw_response: JsonObject = result_json
         self.__set_instance_values(result_json)
@@ -91,7 +93,7 @@ class Results:
         # These are for iterating documents
         self._idx: int = 0
         self._page_idx: int = 0
-        self._client: httpx.AsyncClient | None = client
+        self._client: Client | None = client
 
     def __set_instance_values(self, raw_response: JsonObject) -> None:
         response_part: dict = raw_response.get("response", {})
@@ -220,7 +222,7 @@ class Solr:
 
     Passes the JSON docs to Solr directly for updates.
 
-    Uses the HTTPX library.
+    Uses the pyreqwest library.
     """
 
     __slots__ = ("_url",)
@@ -233,7 +235,7 @@ class Solr:
         query: JsonAPIRequest,
         cursor: bool = False,
         handler: str = "/select",
-        client: httpx.AsyncClient | None = None,
+        client: Client | None = None,
     ) -> Results:
         """
         Consumes a Solr JSON Request API configuration.
@@ -304,7 +306,7 @@ class Solr:
         docid: str,
         fields: list[str] | None = None,
         handler: str = "/get",
-        client: httpx.AsyncClient | None = None,
+        client: Client | None = None,
     ) -> JsonObject | None:
         """
         Sends a request to the Solr RealtimeGetHandler endpoint to fetch a single
@@ -378,29 +380,35 @@ class Solr:
 
 
 async def _post_data_to_solr_with_client(
-    url: str, data: JsonAPIRequest | dict | list[dict], client: httpx.AsyncClient
+    url: str, data: JsonAPIRequest | dict | list[dict], client: Client
 ) -> Json | JsonObject:
     headers: dict = {"Accept-Encoding": "gzip", "Content-Type": "application/json"}
 
     try:
-        res = await client.post(url, json=data, headers=headers)
-    except httpx.HTTPError as err:
+        req = client.post(url).headers(headers).body_json(data).build()
+        res = await req.send()
+    except RequestError as err:
         raise SolrError(
             f"A non-status exception was raised when communicating with Solr: {err}"
         ) from err
 
-    if res.status_code != 200:
-        raise SolrError(
-            f"Solr responded with HTTP Error {res.status_code}: {res.reason_phrase}"
-        )
+    if res.status != 200:
+        raise SolrError(f"Solr responded with HTTP Error {res.status}")
 
-    return orjson.loads(res.text)
+    return orjson.loads((await res.bytes()).to_bytes())
 
 
 async def _post_data_to_solr(
     url: str, data: JsonAPIRequest | dict | list[dict]
 ) -> Json | JsonObject:
-    transport = httpx.AsyncHTTPTransport(retries=NUM_RETRIES)
-    timeout = httpx.Timeout(20.0)
-    async with httpx.AsyncClient(transport=transport, timeout=timeout) as client:
-        return await _post_data_to_solr_with_client(url, data, client)
+    async with ClientBuilder().timeout(timedelta(seconds=20)).build() as client:
+        retry_count = NUM_RETRIES
+        for attempt in range(retry_count):
+            try:
+                return await _post_data_to_solr_with_client(url, data, client)
+            except SolrError as err:
+                if attempt >= NUM_RETRIES:
+                    raise
+                if not isinstance(err.__cause__, RequestError):
+                    raise
+    raise SolrError(f"Unable to send request to Solr after {NUM_RETRIES} retries")
