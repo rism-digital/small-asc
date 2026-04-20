@@ -49,6 +49,24 @@ class TestResultsJsonExpansion(TestCase):
         )
         self.assertEqual(results.docs[0]["title"], "Mass in B minor")
 
+    def test_json_suffix_accepts_list_of_dictionaries(self):
+        results = Results(
+            {
+                "response": {
+                    "numFound": 1,
+                    "docs": [
+                        {
+                            "id": "doc-1",
+                            "metadata_json": '[{"title":"Mass in B minor"}]',
+                        }
+                    ],
+                }
+            },
+            expand_json_fields=True,
+        )
+
+        self.assertEqual(results.docs[0]["metadata_json"], [{"title": "Mass in B minor"}])
+
     def test_invalid_json_raises(self):
         with self.assertRaises(SolrError):
             Results(
@@ -60,31 +78,6 @@ class TestResultsJsonExpansion(TestCase):
                 },
                 expand_json_fields=True,
             )
-
-    def test_json_suffix_requires_dictionary(self):
-        with self.assertRaises(SolrError):
-            Results(
-                {
-                    "response": {
-                        "numFound": 1,
-                        "docs": [{"id": "doc-1", "metadata_json": '["not","a","dict"]'}],
-                    }
-                },
-                expand_json_fields=True,
-            )
-
-    def test_jsonm_suffix_requires_list_of_dictionaries(self):
-        with self.assertRaises(SolrError):
-            Results(
-                {
-                    "response": {
-                        "numFound": 1,
-                        "docs": [{"id": "doc-1", "events_jsonm": '[{"ok":true},"bad"]'}],
-                    }
-                },
-                expand_json_fields=True,
-            )
-
 
 class TestSolrJsonExpansion(IsolatedAsyncioTestCase):
     async def test_search_expands_fields_when_configured(self):

@@ -421,24 +421,12 @@ def _expand_json_fields(doc: JsonObject) -> JsonObject:
     expanded_doc: JsonObject | None = None
 
     for key, value in doc.items():
-        if key.endswith("_jsonm"):
-            parsed_value = _parse_json_field(key, value)
-            if not isinstance(parsed_value, list):
-                raise SolrError(f"Field '{key}' must decode to a list.")
-            if not all(isinstance(item, dict) for item in parsed_value):
-                raise SolrError(
-                    f"Field '{key}' must decode to a list of dictionaries."
-                )
-        elif key.endswith("_json"):
-            parsed_value = _parse_json_field(key, value)
-            if not isinstance(parsed_value, dict):
-                raise SolrError(f"Field '{key}' must decode to a dict.")
-        else:
+        if not key.endswith(("_json", "_jsonm")):
             continue
 
         if expanded_doc is None:
             expanded_doc = doc.copy()
-        expanded_doc[key] = parsed_value
+        expanded_doc[key] = _parse_json_field(key, value)
 
     if expanded_doc is None:
         return doc
