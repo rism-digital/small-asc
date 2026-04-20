@@ -3,7 +3,7 @@ name = "small-asc"
 version = "0.33.0"
 description = "A small asynchronous Solr client"
 authors = [{ name = "Andrew Hankinson", email = "andrew.hankinson@rism.digital" }]
-requires-python = ">=3.11,<4.0"
+requires-python = ">=3.14,<4.0"
 license = "MIT"
 dependencies = [
     "orjson>=3.9.15,<4.0.0",
@@ -16,7 +16,7 @@ Repository = "https://github.com/rism-digital/small-asc"
 
 [dependency-groups]
 dev = [
-    "ipython>=9.0.2,<10",
+    "ipython>=9,<10",
     "pytest-benchmark>=5.0.0,<6",
     "mypy>=1.12.0,<2",
     "pytest>=8.3.3,<9",
