@@ -439,6 +439,12 @@ def _expand_json_fields(doc: JsonObject) -> JsonObject:
 
 
 def _parse_json_field(field_name: str, field_value: Any) -> Any:
+    if field_name.endswith("_jsonm") and isinstance(field_value, list):
+        try:
+            return [orjson.loads(item) for item in field_value]
+        except orjson.JSONDecodeError as err:
+            raise SolrError(f"Field '{field_name}' contains invalid JSON.") from err
+
     if not isinstance(field_value, str | bytes | bytearray):
         raise SolrError(
             f"Field '{field_name}' must be a JSON string before expansion."

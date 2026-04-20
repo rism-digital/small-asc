@@ -49,6 +49,27 @@ class TestResultsJsonExpansion(TestCase):
         )
         self.assertEqual(results.docs[0]["title"], "Mass in B minor")
 
+    def test_jsonm_suffix_accepts_list_of_json_strings(self):
+        results = Results(
+            {
+                "response": {
+                    "numFound": 1,
+                    "docs": [
+                        {
+                            "id": "doc-1",
+                            "events_jsonm": ['{"type":"copy"}', '{"type":"print"}'],
+                        }
+                    ],
+                }
+            },
+            expand_json_fields=True,
+        )
+
+        self.assertEqual(
+            results.docs[0]["events_jsonm"],
+            [{"type": "copy"}, {"type": "print"}],
+        )
+
     def test_json_suffix_accepts_list_of_dictionaries(self):
         results = Results(
             {
