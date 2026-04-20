@@ -350,7 +350,11 @@ class Solr:
         else:
             doc = await _post_data_to_solr(url, qdoc)  # type: ignore
 
-        return doc.get("doc", None)
+        solr_doc = doc.get("doc", None)
+        if self._expand_json_fields and isinstance(solr_doc, dict):
+            return _expand_json_fields(solr_doc)
+
+        return solr_doc
 
     async def delete(
         self, query: str, handler: str = "/update"

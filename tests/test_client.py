@@ -132,3 +132,41 @@ class TestSolrJsonExpansion(IsolatedAsyncioTestCase):
         self.assertTrue(advanced)
         self.assertEqual(results.docs[0]["metadata_json"], {"title": "Second"})
         self.assertEqual(results.current_page, 2)
+
+    async def test_get_expands_fields_when_configured(self):
+        solr = Solr("http://example.invalid/solr/core", expand_json_fields=True)
+
+        with patch(
+            "small_asc.client._post_data_to_solr",
+            return_value={
+                "doc": {
+                    "id": "doc-1",
+                    "metadata_json": '{"title":"Kyrie"}',
+                    "events_jsonm": '[{"type":"source"}]',
+                }
+            },
+        ):
+            doc = await solr.get("doc-1")
+
+        assert doc is not None
+        self.assertEqual(doc["metadata_json"], {"title": "Kyrie"})
+        self.assertEqual(doc["events_jsonm"], [{"type": "source"}])
+
+    async def test_get_keeps_raw_strings_when_expansion_disabled(self):
+        solr = Solr("http://example.invalid/solr/core")
+
+        with patch(
+            "small_asc.client._post_data_to_solr",
+            return_value={
+                "doc": {
+                    "id": "doc-1",
+                    "metadata_json": '{"title":"Kyrie"}',
+                    "events_jsonm": '[{"type":"source"}]',
+                }
+            },
+        ):
+            doc = await solr.get("doc-1")
+
+        assert doc is not None
+        self.assertEqual(doc["metadata_json"], '{"title":"Kyrie"}')
+        self.assertEqual(doc["events_jsonm"], '[{"type":"source"}]')
