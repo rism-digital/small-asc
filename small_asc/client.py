@@ -70,6 +70,7 @@ class Results:
         "_idx",
         "_page_idx",
         "_client",
+        "_expand_json_fields",
     )
 
     def __init__(
@@ -78,7 +79,9 @@ class Results:
         url: str | None = None,
         query: JsonAPIRequest | None = None,
         client: Client | None = None,
+        expand_json_fields: bool = False,
     ) -> None:
+        self._expand_json_fields: bool = expand_json_fields
         self.raw_response: JsonObject = result_json
         self.__set_instance_values(result_json)
 
@@ -97,7 +100,11 @@ class Results:
 
     def __set_instance_values(self, raw_response: JsonObject) -> None:
         response_part: dict = raw_response.get("response", {})
-        self.docs: list = response_part.get("docs", [])
+        docs: list = response_part.get("docs", [])
+        if self._expand_json_fields:
+            self.docs = [_expand_json_fields(doc) for doc in docs]
+        else:
+            self.docs = docs
         self.hits: int = response_part.get("numFound", 0)
 
         # other response metadata
@@ -183,9 +190,7 @@ class Results:
                 self._page_idx += 1
         else:
             while self._idx < self.hits:
-                try:
-                    yield self.docs[self._page_idx]  # type: ignore
-                except IndexError:
+                if self._page_idx >= len(self.docs):
                     self._page_idx = 0
                     # update the cursormark with the cursor mark from the previous query.
                     self._query.get("params", {}).update(  # type: ignore
@@ -209,6 +214,8 @@ class Results:
                         yield self.docs[self._page_idx]
                     else:
                         break
+                else:
+                    yield self.docs[self._page_idx]  # type: ignore
 
                 self._page_idx += 1
                 self._idx += 1
@@ -225,10 +232,11 @@ class Solr:
     Uses the pyreqwest library.
     """
 
-    __slots__ = ("_url",)
+    __slots__ = ("_url", "_expand_json_fields")
 
-    def __init__(self, url: str) -> None:
+    def __init__(self, url: str, expand_json_fields: bool = False) -> None:
         self._url: str = url
+        self._expand_json_fields: bool = expand_json_fields
 
     async def search(
         self,
@@ -291,11 +299,22 @@ class Solr:
             search_results = await _post_data_to_solr(url, query)  # type: ignore
 
         if cursor and client:
-            return Results(search_results, url, query, client)
+            return Results(
+                search_results,
+                url,
+                query,
+                client,
+                expand_json_fields=self._expand_json_fields,
+            )
         elif cursor:
-            return Results(search_results, url, query)
+            return Results(
+                search_results,
+                url,
+                query,
+                expand_json_fields=self._expand_json_fields,
+            )
 
-        return Results(search_results)
+        return Results(search_results, expand_json_fields=self._expand_json_fields)
 
     async def add(self, docs: list[dict], handler: str = "/update") -> Json:
         url: str = self._create_url(handler)
@@ -396,6 +415,47 @@ async def _post_data_to_solr_with_client(
         raise SolrError(f"Solr responded with HTTP Error {res.status}")
 
     return orjson.loads((await res.bytes()).to_bytes())
+
+
+def _expand_json_fields(doc: JsonObject) -> JsonObject:
+    expanded_doc: JsonObject | None = None
+
+    for key, value in doc.items():
+        if key.endswith("_jsonm"):
+            parsed_value = _parse_json_field(key, value)
+            if not isinstance(parsed_value, list):
+                raise SolrError(f"Field '{key}' must decode to a list.")
+            if not all(isinstance(item, dict) for item in parsed_value):
+                raise SolrError(
+                    f"Field '{key}' must decode to a list of dictionaries."
+                )
+        elif key.endswith("_json"):
+            parsed_value = _parse_json_field(key, value)
+            if not isinstance(parsed_value, dict):
+                raise SolrError(f"Field '{key}' must decode to a dict.")
+        else:
+            continue
+
+        if expanded_doc is None:
+            expanded_doc = doc.copy()
+        expanded_doc[key] = parsed_value
+
+    if expanded_doc is None:
+        return doc
+
+    return expanded_doc
+
+
+def _parse_json_field(field_name: str, field_value: Any) -> Any:
+    if not isinstance(field_value, str | bytes | bytearray):
+        raise SolrError(
+            f"Field '{field_name}' must be a JSON string before expansion."
+        )
+
+    try:
+        return orjson.loads(field_value)
+    except orjson.JSONDecodeError as err:
+        raise SolrError(f"Field '{field_name}' contains invalid JSON.") from err
 
 
 async def _post_data_to_solr(
