@@ -1,10 +1,6 @@
 version = 1
 revision = 3
 requires-python = ">=3.14, <4.0"
-resolution-markers = [
-    "python_full_version >= '3.15'",
-    "python_full_version < '3.15'",
-]
 
 [[package]]
 name = "asttokens"
@@ -400,7 +396,7 @@ wheels = [
 
 [[package]]
 name = "small-asc"
-version = "0.34.0"
+version = "0.35.0"
 source = { editable = "." }
 dependencies = [
     { name = "orjson" },
