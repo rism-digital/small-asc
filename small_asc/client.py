@@ -2,7 +2,7 @@ import logging
 import math
 from collections.abc import AsyncGenerator
 from datetime import timedelta
-from typing import Any, TypeAlias, TypedDict
+from typing import Any, TypedDict
 
 import orjson
 from pyreqwest.client import Client, ClientBuilder
@@ -10,8 +10,9 @@ from pyreqwest.exceptions import RequestError
 
 log = logging.getLogger(__name__)
 
-Json: TypeAlias = list[Any] | dict[Any, Any]
-JsonObject: TypeAlias = dict[Any, Any]
+type JsonObject = dict[str, Any]
+type Json = list[Any] | JsonObject
+type SolrDocs = list[JsonObject]
 
 # Allow a request to be retried up to two times.
 NUM_RETRIES: int = 3
@@ -41,6 +42,9 @@ class JsonAPIRequest(TypedDict, total=False):
 class JSONTermsSuggestRequest(TypedDict, total=False):
     query: str
     fields: list[str]
+
+
+type RequestPayload = JsonAPIRequest | JsonObject | SolrDocs | None
 
 
 class Results:
@@ -130,7 +134,7 @@ class Results:
         _rows: int = _docslen if _docslen > 0 else 1
         self.num_pages: int = int(math.ceil(self.hits / _rows))
 
-    def __len__(self):
+    def __len__(self) -> int:
         if self._is_cursor:
             return self.hits
         return len(self.docs)
@@ -161,18 +165,18 @@ class Results:
             return False
 
         if self._query is None:
-            self._query = {}
+            self._query = JsonAPIRequest()
 
         if self.current_page < self.num_pages:
             if "params" in self._query:
                 self._query["params"].update({"cursorMark": self.next_cursor_mark})
 
             if self._client:
-                self.raw_response = await _post_data_to_solr_with_client(  # type: ignore
+                self.raw_response = await _post_data_to_solr_with_client(
                     self._query_url, self._query, self._client
                 )
             else:
-                self.raw_response = await _post_data_to_solr(  # type: ignore
+                self.raw_response = await _post_data_to_solr(
                     self._query_url, self._query
                 )
 
@@ -182,30 +186,31 @@ class Results:
 
         return False
 
-    async def __aiter__(self) -> AsyncGenerator[Any, None]:
+    async def __aiter__(self) -> AsyncGenerator[Any]:
         if not self._is_cursor:
             _docslen: int = len(self.docs)
             while self._page_idx < _docslen:
                 yield self.docs[self._page_idx]
                 self._page_idx += 1
         else:
+            if self._query is None or self._query_url is None:
+                return
             while self._idx < self.hits:
                 if self._page_idx >= len(self.docs):
                     self._page_idx = 0
                     # update the cursormark with the cursor mark from the previous query.
-                    self._query.get("params", {}).update(  # type: ignore
+                    self._query.setdefault("params", {}).update(
                         {"cursorMark": self.next_cursor_mark}
                     )
                     if self._client:
-                        self.raw_response = await _post_data_to_solr_with_client(  # type: ignore
-                            self._query_url,  # type: ignore
-                            self._query,  # type: ignore
-                            self._client,  # type: ignore
+                        self.raw_response = await _post_data_to_solr_with_client(
+                            self._query_url,
+                            self._query,
+                            self._client,
                         )
                     else:
-                        self.raw_response = await _post_data_to_solr(  # type: ignore
-                            self._query_url,  # type: ignore
-                            self._query,  # type: ignore
+                        self.raw_response = await _post_data_to_solr(
+                            self._query_url, self._query
                         )
                     self.__set_instance_values(self.raw_response)
                     self.current_page += 1
@@ -215,7 +220,7 @@ class Results:
                     else:
                         break
                 else:
-                    yield self.docs[self._page_idx]  # type: ignore
+                    yield self.docs[self._page_idx]
 
                 self._page_idx += 1
                 self._idx += 1
@@ -294,9 +299,9 @@ class Solr:
 
         search_results: JsonObject
         if client:
-            search_results = await _post_data_to_solr_with_client(url, query, client)  # type: ignore
+            search_results = await _post_data_to_solr_with_client(url, query, client)
         else:
-            search_results = await _post_data_to_solr(url, query)  # type: ignore
+            search_results = await _post_data_to_solr(url, query)
 
         if cursor and client:
             return Results(
@@ -316,7 +321,7 @@ class Solr:
 
         return Results(search_results, expand_json_fields=self._expand_json_fields)
 
-    async def add(self, docs: list[dict], handler: str = "/update") -> Json:
+    async def add(self, docs: SolrDocs, handler: str = "/update") -> Json:
         url: str = self._create_url(handler)
         return await _post_data_to_solr(url, docs)
 
@@ -339,16 +344,16 @@ class Solr:
         :return: A dictionary containing the Solr document.
         """
         url: str = self._create_url(handler)
-        qdoc: dict = {"params": {"id": docid}}
+        qdoc: JsonObject = {"params": {"id": docid}}
 
         if fields and isinstance(fields, list):
             qdoc.update({"fields": fields})
 
         doc: JsonObject
         if client:
-            doc = await _post_data_to_solr_with_client(url, qdoc, client)  # type: ignore
+            doc = await _post_data_to_solr_with_client(url, qdoc, client)
         else:
-            doc = await _post_data_to_solr(url, qdoc)  # type: ignore
+            doc = await _post_data_to_solr(url, qdoc)
 
         solr_doc = doc.get("doc", None)
         if self._expand_json_fields and isinstance(solr_doc, dict):
@@ -386,7 +391,7 @@ class Solr:
         :return: A dictionary containing the Solr response
         """
         base_url: str = self._create_url(handler)
-        solr_query: dict = {
+        solr_query: JsonObject = {
             "params": {
                 "omitHeader": "true",
                 "terms": "true",
@@ -403,8 +408,8 @@ class Solr:
 
 
 async def _post_data_to_solr_with_client(
-    url: str, data: JsonAPIRequest | dict | list[dict], client: Client
-) -> Json | JsonObject:
+    url: str, data: RequestPayload, client: Client
+) -> JsonObject:
     headers: dict = {"Accept-Encoding": "gzip", "Content-Type": "application/json"}
 
     try:
@@ -446,9 +451,7 @@ def _parse_json_field(field_name: str, field_value: Any) -> Any:
             raise SolrError(f"Field '{field_name}' contains invalid JSON.") from err
 
     if not isinstance(field_value, str | bytes | bytearray):
-        raise SolrError(
-            f"Field '{field_name}' must be a JSON string before expansion."
-        )
+        raise SolrError(f"Field '{field_name}' must be a JSON string before expansion.")
 
     try:
         return orjson.loads(field_value)
@@ -456,9 +459,7 @@ def _parse_json_field(field_name: str, field_value: Any) -> Any:
         raise SolrError(f"Field '{field_name}' contains invalid JSON.") from err
 
 
-async def _post_data_to_solr(
-    url: str, data: JsonAPIRequest | dict | list[dict]
-) -> Json | JsonObject:
+async def _post_data_to_solr(url: str, data: RequestPayload) -> JsonObject:
     async with ClientBuilder().timeout(timedelta(seconds=20)).build() as client:
         retry_count = NUM_RETRIES
         for attempt in range(retry_count):
