@@ -36,6 +36,7 @@ test_queries = [
     ("CH -E", "CH -E"),
     ("B/I 1611|1", "B/I 1611|1"),
     ('"B/I 1611|1"', '"B/I 1611|1"'),
+    ("title:Mazzo d'armonici fiori", "title:Mazzo d'armonici fiori"),
 ]
 
 
