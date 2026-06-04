@@ -1,6 +1,6 @@
 [project]
 name = "small-asc"
-version = "0.35.0"
+version = "0.36.0"
 description = "A small asynchronous Solr client"
 authors = [{ name = "Andrew Hankinson", email = "andrew.hankinson@rism.digital" }]
 requires-python = ">=3.14,<4.0"
@@ -8,7 +8,7 @@ license = "MIT"
 dependencies = [
     "orjson>=3.9.15,<4.0.0",
     "parsimonious>=0.10.0,<0.12.0",
-    "pyreqwest>=0.11.2,<0.12.0",
+    "pyreqwest>=0.12.0,<0.13.0",
 ]
 
 [project.urls]
