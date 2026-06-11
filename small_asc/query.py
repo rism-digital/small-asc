@@ -12,12 +12,12 @@ lucene_query_grammar = Grammar(
     empty_field_clause  = field_name ":" !~r"."
 
     # Fielded clause (e.g., title:foo, creator:Palestrina)
-    fielded_clause      = field_name ":" (term / phrase / range_clause / boolean_clause)
+    fielded_clause      = field_name ":" (term / phrase / range_clause / boolean_clause / wildcard)
 
     field_name               = ~r"[a-zA-Z_][a-zA-Z0-9_]*"
 
     # Boolean clause (e.g., (foo AND bar))
-    boolean_clause      = "(" query ")"
+    boolean_clause      = "(" query ")" boost?
 
     # Range queries (e.g., [2001 TO 2003] or {A TO Z})
     range_clause        = range_inclusive / range_exclusive

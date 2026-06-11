@@ -42,6 +42,7 @@ test_queries = [
     ('"sonata C"~2^3', '"sonata C"~2^3'),
     ('title:"hello world"^3', 'title:"hello world"^3'),
     ('title:"hello world"~2^3', 'title:"hello world"~2^3'),
+    ("(foo bar)^2", "(foo bar)^2"),
 ]
 
 
@@ -72,6 +73,9 @@ test_replacements = [
         {"intervals_bi"},
         'series_sm:12345 intervals_bi:"-1 -1 0 -1"',
     ),
+    ("title:*", {"title": "other"}, None, "other:*"),
+    ("title:?", {"title": "other"}, None, "other:?"),
+    ("title:(foo bar)^2", {"title": "other"}, None, "other:(foo bar)^2"),
 ]
 
 test_replacements_raises = [
