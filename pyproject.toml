@@ -1,6 +1,6 @@
 [project]
 name = "small-asc"
-version = "0.36.0"
+version = "1.0.1"
 description = "A small asynchronous Solr client"
 readme = "README.txt"
 authors = [{ name = "Andrew Hankinson", email = "andrew.hankinson@rism.digital" }]
