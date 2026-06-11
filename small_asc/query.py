@@ -25,17 +25,11 @@ lucene_query_grammar = Grammar(
     range_exclusive     = "{" range_value whitespace "TO" whitespace range_value "}"
     range_value         = wildcard_multiple / term
 
-    # Terms and phrases
-    term_sequence       = (optional_operator? term_or_phrase) (whitespace optional_operator? term_or_phrase)*
-
     term_or_phrase      = term / phrase
     term                = literal (wildcard / fuzziness)? boost?
     phrase              = '"' literal (whitespace literal)* '"' fuzziness? boost?
 
     literal             = ~r"[\w.,!:;@'\^\-/\|]+"
-
-    # Boolean operators
-    boolean_operator    = "AND" / "OR" / "NOT"
 
     # Wildcards and fuzziness (e.g., foo* or foo~2)
     wildcard            = wildcard_multiple / wildcard_single
@@ -49,8 +43,6 @@ lucene_query_grammar = Grammar(
 
     # Optional operators (+ for required, - for prohibited, etc.)
     optional_operator   = ~r"[+\-]"
-
-    digit               = ~r"[0-9]"
 
     # Whitespace
     whitespace          = ~r"\s+"
@@ -122,10 +114,6 @@ class LuceneQueryBuilder(NodeVisitor):
         # Field name, just return the text (e.g., title, author)
         return f"{node.text}"
 
-    def visit_term_sequence(self, node, visited_children) -> str:
-        # Sequence of terms (e.g., foo bar)
-        return "".join(visited_children)
-
     def visit_term(self, node, visited_children) -> str:
         # Terms (e.g., foo)
         return "".join(visited_children)
@@ -140,10 +128,6 @@ class LuceneQueryBuilder(NodeVisitor):
 
     def visit_optional_operator(self, node, visited_children) -> str:
         # Optional operators (+ or -)
-        return f"{node.text}"
-
-    def visit_boolean_operator(self, node, visited_children) -> str:
-        # Boolean operators (AND, OR, NOT)
         return f"{node.text}"
 
     def visit_boost(self, node, visited_children):
