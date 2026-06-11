@@ -19,6 +19,8 @@ test_queries = [
         'shelfmark:"MLHs" creator:Palestrina',
     ),
     ("foo~2", "foo~2"),
+    ("foo~10", "foo~10"),
+    ("foo~0.5", "foo~0.5"),
     ("(foo bar)", "(foo bar)"),
     ("title:(foo NOT bar)", "title:(foo NOT bar)"),
     ("(foo OR bar)", "(foo OR bar)"),

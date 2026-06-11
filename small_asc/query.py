@@ -41,7 +41,7 @@ lucene_query_grammar = Grammar(
     wildcard            = wildcard_multiple / wildcard_single
     wildcard_multiple   = "*"
     wildcard_single     = "?"
-    fuzziness           = "~" digit?
+    fuzziness           = "~" number?
 
     # Boosting (e.g., foo^2.0)
     boost               = "^" number
