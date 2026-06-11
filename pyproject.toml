@@ -2,6 +2,7 @@
 name = "small-asc"
 version = "0.36.0"
 description = "A small asynchronous Solr client"
+readme = "README.txt"
 authors = [{ name = "Andrew Hankinson", email = "andrew.hankinson@rism.digital" }]
 requires-python = ">=3.14,<4.0"
 license = "MIT"
