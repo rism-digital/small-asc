@@ -118,7 +118,7 @@ class LuceneQueryBuilder(NodeVisitor):
 
         return f"{field_name}:{term_or_phrase}"
 
-    def visit_field(self, node, visited_children) -> str:
+    def visit_field_name(self, node, visited_children) -> str:
         # Field name, just return the text (e.g., title, author)
         return f"{node.text}"
 
