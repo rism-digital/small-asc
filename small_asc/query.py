@@ -30,7 +30,7 @@ lucene_query_grammar = Grammar(
 
     term_or_phrase      = term / phrase
     term                = literal (wildcard / fuzziness)? boost?
-    phrase              = '"' literal (whitespace literal)* '"' (boost / fuzziness)?
+    phrase              = '"' literal (whitespace literal)* '"' fuzziness? boost?
 
     literal             = ~r"[\w.,!:;@'\^\-/\|]+"
 

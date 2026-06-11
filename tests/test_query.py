@@ -39,6 +39,9 @@ test_queries = [
     ("B/I 1611|1", "B/I 1611|1"),
     ('"B/I 1611|1"', '"B/I 1611|1"'),
     ("title:Mazzo d'armonici fiori", "title:Mazzo d'armonici fiori"),
+    ('"sonata C"~2^3', '"sonata C"~2^3'),
+    ('title:"hello world"^3', 'title:"hello world"^3'),
+    ('title:"hello world"~2^3', 'title:"hello world"~2^3'),
 ]
 
 
