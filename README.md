@@ -2,7 +2,8 @@
 
 A small, asynchronous Solr client for Python, built as a modern replacement for PySolr.
 
-small-asc uses HTTPX (via `pyreqwest`) and `orjson` for fast, asynchronous communication with Apache Solr. It exclusively uses the Solr JSON Request API for queries and updates.
+small-asc uses HTTPX (via `pyreqwest`) and `orjson` for fast, asynchronous communication with Apache Solr. 
+It exclusively uses the Solr JSON Request API for queries and updates.
 
 ## Requirements
 
