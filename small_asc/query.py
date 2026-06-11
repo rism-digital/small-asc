@@ -23,7 +23,7 @@ lucene_query_grammar = Grammar(
     range_clause        = range_inclusive / range_exclusive
     range_inclusive     = "[" range_value whitespace "TO" whitespace range_value "]"
     range_exclusive     = "{" range_value whitespace "TO" whitespace range_value "}"
-    range_value         = wildcard_multiple / term
+    range_value         = wildcard_multiple / literal
 
     term_or_phrase      = term / phrase
     term                = literal (wildcard / fuzziness)? boost?

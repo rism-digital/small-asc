@@ -53,6 +53,8 @@ test_raises = [
     "fo?????",
     'publisher-number:"G.H."',
     'series:"1234*"',
+    "[foo~1 TO bar^2]",
+    "[foo* TO bar^2]",
 ]
 
 test_replacements = [
